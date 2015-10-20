@@ -1,4 +1,5 @@
-#SRCS+= adb.c
+SRCS+= pyadb.c
+SRCS+= adb.c
 SRCS+= adb_client.c
 SRCS+= adb_auth_host.c
 SRCS+= commandline.c
@@ -45,20 +46,19 @@ CPPFLAGS+= -D_FILE_OFFSET_BITS=64
 CPPFLAGS+= -DHAVE_OFF64_T
 CPPFLAGS+= -I.
 CPPFLAGS+= -Iinclude
+CPPFLAGS+= `pkg-config --cflags python3`
 
-CFLAGS+= $(RPM_OPT_FLAGS)
 LIBS= -lrt -lpthread -lz -lcrypto
-LDFLAGS+= $(RPM_LD_FLAGS)
 
 CC= $(TOOLCHAIN)gcc
 LD= $(TOOLCHAIN)gcc
 
 #OBJS= $(SRCS:.c=.o)
 
-all: adb.so
+all: pyadb.so
 
-adb.so: $(OBJS)
-	$(LD) -o $@ $(CPPFLAGS) $(SRCS) -shared -fPIC
+pyadb.so: $(SRCS)
+	$(LD) -o $@ $(CPPFLAGS) $(LIBS) $(SRCS) -shared -fPIC
 
 clean:
-	rm -rf adb.so
+	rm -rf pyadb.so
