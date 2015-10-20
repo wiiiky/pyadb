@@ -64,8 +64,7 @@ void fdevent_set_timeout(fdevent *fde, int64_t  timeout_ms);
 */
 void fdevent_loop();
 
-struct fdevent 
-{
+struct fdevent {
     fdevent *next;
     fdevent *prev;
 

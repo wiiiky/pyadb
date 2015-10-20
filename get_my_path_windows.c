@@ -18,8 +18,7 @@
 #include <assert.h>
 #include <windows.h>
 
-void get_my_path(char *exe, size_t maxLen)
-{
+void get_my_path(char *exe, size_t maxLen) {
     char  *r;
 
     /* XXX: should be GetModuleFileNameA */

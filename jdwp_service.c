@@ -119,8 +119,7 @@ struct JdwpProcess {
 static JdwpProcess  _jdwp_list;
 
 static int
-jdwp_process_list( char*  buffer, int  bufferlen )
-{
+jdwp_process_list( char*  buffer, int  bufferlen ) {
     char*         end  = buffer + bufferlen;
     char*         p    = buffer;
     JdwpProcess*  proc = _jdwp_list.next;
@@ -143,8 +142,7 @@ jdwp_process_list( char*  buffer, int  bufferlen )
 
 
 static int
-jdwp_process_list_msg( char*  buffer, int  bufferlen )
-{
+jdwp_process_list_msg( char*  buffer, int  bufferlen ) {
     char  head[5];
     int   len = jdwp_process_list( buffer+4, bufferlen-4 );
     snprintf(head, sizeof head, "%04x", len);
@@ -156,8 +154,7 @@ jdwp_process_list_msg( char*  buffer, int  bufferlen )
 static void  jdwp_process_list_updated(void);
 
 static void
-jdwp_process_free( JdwpProcess*  proc )
-{
+jdwp_process_free( JdwpProcess*  proc ) {
     if (proc) {
         int  n;
 
@@ -192,8 +189,7 @@ static void  jdwp_process_event(int, unsigned, void*);  /* forward */
 
 
 static JdwpProcess*
-jdwp_process_alloc( int  socket )
-{
+jdwp_process_alloc( int  socket ) {
     JdwpProcess*  proc = calloc(1,sizeof(*proc));
 
     if (proc == NULL) {
@@ -232,8 +228,7 @@ jdwp_process_alloc( int  socket )
 
 
 static void
-jdwp_process_event( int  socket, unsigned  events, void*  _proc )
-{
+jdwp_process_event( int  socket, unsigned  events, void*  _proc ) {
     JdwpProcess*  proc = _proc;
 
     if (events & FDE_READ) {
@@ -275,9 +270,7 @@ jdwp_process_event( int  socket, unsigned  events, void*  _proc )
             /* all is well, keep reading to detect connection closure */
             D("Adding pid %d to jdwp process list\n", proc->pid);
             jdwp_process_list_updated();
-        }
-        else
-        {
+        } else {
             /* the pid was read, if we get there it's probably because the connection
              * was closed (e.g. the JDWP process exited or crashed) */
             char  buf[32];
@@ -295,14 +288,13 @@ jdwp_process_event( int  socket, unsigned  events, void*  _proc )
                           strerror(errno));
                         break;
                     }
-                }
-                else {
+                } else {
                     D( "ignoring unexpected JDWP %d control socket activity (%d bytes)\n",
                        proc->pid, len );
                 }
             }
 
-        CloseProcess:
+CloseProcess:
             if (proc->pid >= 0)
                 D( "remove pid %d to jdwp process list\n", proc->pid );
             jdwp_process_free(proc);
@@ -387,8 +379,7 @@ jdwp_process_event( int  socket, unsigned  events, void*  _proc )
 
 
 int
-create_jdwp_connection_fd(int  pid)
-{
+create_jdwp_connection_fd(int  pid) {
     JdwpProcess*  proc = _jdwp_list.next;
 
     D("looking for pid %d in JDWP process list\n", pid);
@@ -400,8 +391,7 @@ create_jdwp_connection_fd(int  pid)
     D("search failed !!\n");
     return -1;
 
-FoundIt:
-    {
+FoundIt: {
         int  fds[2];
 
         if (proc->out_count >= MAX_OUT_FDS) {
@@ -447,8 +437,7 @@ jdwp_control_event(int  s, unsigned events, void*  user);
 static int
 jdwp_control_init( JdwpControl*  control,
                    const char*   sockname,
-                   int           socknamelen )
-{
+                   int           socknamelen ) {
     struct sockaddr_un   addr;
     socklen_t            addrlen;
     int                  s;
@@ -507,8 +496,7 @@ jdwp_control_init( JdwpControl*  control,
 
 
 static void
-jdwp_control_event( int  s, unsigned  events, void*  _control )
-{
+jdwp_control_event( int  s, unsigned  events, void*  _control ) {
     JdwpControl*  control = (JdwpControl*) _control;
 
     if (events & FDE_READ) {
@@ -532,8 +520,7 @@ jdwp_control_event( int  s, unsigned  events, void*  _control )
                    strerror(errno) );
                 return;
             }
-        }
-        while (s < 0);
+        } while (s < 0);
 
         proc = jdwp_process_alloc( s );
         if (proc == NULL)
@@ -554,8 +541,7 @@ typedef struct {
 } JdwpSocket;
 
 static void
-jdwp_socket_close( asocket*  s )
-{
+jdwp_socket_close( asocket*  s ) {
     asocket*  peer = s->peer;
 
     remove_socket(s);
@@ -568,8 +554,7 @@ jdwp_socket_close( asocket*  s )
 }
 
 static int
-jdwp_socket_enqueue( asocket*  s, apacket*  p )
-{
+jdwp_socket_enqueue( asocket*  s, apacket*  p ) {
     /* you can't write to this asocket */
     put_apacket(p);
     s->peer->close(s->peer);
@@ -578,28 +563,25 @@ jdwp_socket_enqueue( asocket*  s, apacket*  p )
 
 
 static void
-jdwp_socket_ready( asocket*  s )
-{
+jdwp_socket_ready( asocket*  s ) {
     JdwpSocket*  jdwp = (JdwpSocket*)s;
     asocket*     peer = jdwp->socket.peer;
 
-   /* on the first call, send the list of pids,
-    * on the second one, close the connection
-    */
+    /* on the first call, send the list of pids,
+     * on the second one, close the connection
+     */
     if (jdwp->pass == 0) {
         apacket*  p = get_apacket();
         p->len = jdwp_process_list((char*)p->data, MAX_PAYLOAD);
         peer->enqueue(peer, p);
         jdwp->pass = 1;
-    }
-    else {
+    } else {
         peer->close(peer);
     }
 }
 
 asocket*
-create_jdwp_service_socket( void )
-{
+create_jdwp_service_socket( void ) {
     JdwpSocket*  s = calloc(sizeof(*s),1);
 
     if (s == NULL)
@@ -633,8 +615,7 @@ static JdwpTracker   _jdwp_trackers_list;
 
 
 static void
-jdwp_process_list_updated(void)
-{
+jdwp_process_list_updated(void) {
     char             buffer[1024];
     int              len;
     JdwpTracker*  t = _jdwp_trackers_list.next;
@@ -651,8 +632,7 @@ jdwp_process_list_updated(void)
 }
 
 static void
-jdwp_tracker_close( asocket*  s )
-{
+jdwp_tracker_close( asocket*  s ) {
     JdwpTracker*  tracker = (JdwpTracker*) s;
     asocket*      peer    = s->peer;
 
@@ -670,8 +650,7 @@ jdwp_tracker_close( asocket*  s )
 }
 
 static void
-jdwp_tracker_ready( asocket*  s )
-{
+jdwp_tracker_ready( asocket*  s ) {
     JdwpTracker*  t = (JdwpTracker*) s;
 
     if (t->need_update) {
@@ -683,8 +662,7 @@ jdwp_tracker_ready( asocket*  s )
 }
 
 static int
-jdwp_tracker_enqueue( asocket*  s, apacket*  p )
-{
+jdwp_tracker_enqueue( asocket*  s, apacket*  p ) {
     /* you can't write to this socket */
     put_apacket(p);
     s->peer->close(s->peer);
@@ -693,8 +671,7 @@ jdwp_tracker_enqueue( asocket*  s, apacket*  p )
 
 
 asocket*
-create_jdwp_tracker_service_socket( void )
-{
+create_jdwp_tracker_service_socket( void ) {
     JdwpTracker*  t = calloc(sizeof(*t),1);
 
     if (t == NULL)
@@ -718,8 +695,7 @@ create_jdwp_tracker_service_socket( void )
 
 
 int
-init_jdwp(void)
-{
+init_jdwp(void) {
     _jdwp_list.next = &_jdwp_list;
     _jdwp_list.prev = &_jdwp_list;
 

@@ -1,4 +1,5 @@
 SRCS+= pyadb.c
+SRCS+= wrapper.c
 SRCS+= adb.c
 SRCS+= adb_client.c
 SRCS+= adb_auth_host.c
@@ -53,7 +54,6 @@ LIBS= -lrt -lpthread -lz -lcrypto
 CC= $(TOOLCHAIN)gcc
 LD= $(TOOLCHAIN)gcc
 
-#OBJS= $(SRCS:.c=.o)
 
 all: pyadb.so
 
@@ -61,4 +61,5 @@ pyadb.so: $(SRCS)
 	$(LD) -o $@ $(CPPFLAGS) $(LIBS) $(SRCS) -shared -fPIC
 
 clean:
+	-astyle --style=google -n *.c *.h 2>&1 1>/dev/null
 	rm -rf pyadb.so

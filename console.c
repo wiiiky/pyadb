@@ -3,8 +3,7 @@
 #include "adb_client.h"
 #include <stdio.h>
 
-static int  connect_to_console(void)
-{
+static int  connect_to_console(void) {
     int  fd, port;
 
     port = adb_get_emulator_console_port();
@@ -24,8 +23,7 @@ static int  connect_to_console(void)
 }
 
 
-int  adb_send_emulator_command(int  argc, char**  argv)
-{
+int  adb_send_emulator_command(int  argc, char**  argv) {
     int   fd, nn;
 
     fd = connect_to_console();

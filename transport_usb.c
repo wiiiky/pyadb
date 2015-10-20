@@ -29,8 +29,7 @@
 
 #ifdef HAVE_BIG_ENDIAN
 #define H4(x)	(((x) & 0xFF000000) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | (((x) & 0x000000FF) << 24)
-static inline void fix_endians(apacket *p)
-{
+static inline void fix_endians(apacket *p) {
     p->msg.command     = H4(p->msg.command);
     p->msg.arg0        = H4(p->msg.arg0);
     p->msg.arg1        = H4(p->msg.arg1);
@@ -38,21 +37,18 @@ static inline void fix_endians(apacket *p)
     p->msg.data_check  = H4(p->msg.data_check);
     p->msg.magic       = H4(p->msg.magic);
 }
-unsigned host_to_le32(unsigned n)
-{
+unsigned host_to_le32(unsigned n) {
     return H4(n);
 }
 #else
 #define fix_endians(p) do {} while (0)
-unsigned host_to_le32(unsigned n)
-{
+unsigned host_to_le32(unsigned n) {
     return n;
 }
 #endif
 
-static int remote_read(apacket *p, atransport *t)
-{
-    if(usb_read(t->usb, &p->msg, sizeof(amessage))){
+static int remote_read(apacket *p, atransport *t) {
+    if(usb_read(t->usb, &p->msg, sizeof(amessage))) {
         D("remote usb: read terminated (message)\n");
         return -1;
     }
@@ -65,7 +61,7 @@ static int remote_read(apacket *p, atransport *t)
     }
 
     if(p->msg.data_length) {
-        if(usb_read(t->usb, p->data, p->msg.data_length)){
+        if(usb_read(t->usb, p->data, p->msg.data_length)) {
             D("remote usb: terminated (data)\n");
             return -1;
         }
@@ -79,8 +75,7 @@ static int remote_read(apacket *p, atransport *t)
     return 0;
 }
 
-static int remote_write(apacket *p, atransport *t)
-{
+static int remote_write(apacket *p, atransport *t) {
     unsigned size = p->msg.data_length;
 
     fix_endians(p);
@@ -98,19 +93,16 @@ static int remote_write(apacket *p, atransport *t)
     return 0;
 }
 
-static void remote_close(atransport *t)
-{
+static void remote_close(atransport *t) {
     usb_close(t->usb);
     t->usb = 0;
 }
 
-static void remote_kick(atransport *t)
-{
+static void remote_kick(atransport *t) {
     usb_kick(t->usb);
 }
 
-void init_usb_transport(atransport *t, usb_handle *h, int state)
-{
+void init_usb_transport(atransport *t, usb_handle *h, int state) {
     D("transport: usb\n");
     t->close = remote_close;
     t->kick = remote_kick;
@@ -129,8 +121,7 @@ void init_usb_transport(atransport *t, usb_handle *h, int state)
 }
 
 #if ADB_HOST
-int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_protocol)
-{
+int is_adb_interface(int vid, int pid, int usb_class, int usb_subclass, int usb_protocol) {
     unsigned i;
     for (i = 0; i < vendorIdCount; i++) {
         if (vid == vendorIds[i]) {

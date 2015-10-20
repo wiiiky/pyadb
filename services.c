@@ -47,8 +47,7 @@ struct stinfo {
 };
 
 
-void *service_bootstrap_func(void *x)
-{
+void *service_bootstrap_func(void *x) {
     stinfo *sti = x;
     sti->func(sti->fd, sti->cookie);
     free(sti);
@@ -57,8 +56,7 @@ void *service_bootstrap_func(void *x)
 
 #if !ADB_HOST
 
-void restart_root_service(int fd, void *cookie)
-{
+void restart_root_service(int fd, void *cookie) {
     char buf[100];
     char value[PROPERTY_VALUE_MAX];
 
@@ -82,8 +80,7 @@ void restart_root_service(int fd, void *cookie)
     }
 }
 
-void restart_tcp_service(int fd, void *cookie)
-{
+void restart_tcp_service(int fd, void *cookie) {
     char buf[100];
     char value[PROPERTY_VALUE_MAX];
     int port = (int) (uintptr_t) cookie;
@@ -102,8 +99,7 @@ void restart_tcp_service(int fd, void *cookie)
     adb_close(fd);
 }
 
-void restart_usb_service(int fd, void *cookie)
-{
+void restart_usb_service(int fd, void *cookie) {
     char buf[100];
 
     property_set("service.adb.tcp.port", "0");
@@ -112,8 +108,7 @@ void restart_usb_service(int fd, void *cookie)
     adb_close(fd);
 }
 
-void reboot_service(int fd, void *arg)
-{
+void reboot_service(int fd, void *arg) {
     char buf[100];
     char property_val[PROPERTY_VALUE_MAX];
     int ret;
@@ -135,14 +130,15 @@ void reboot_service(int fd, void *arg)
     }
     // Don't return early. Give the reboot command time to take effect
     // to avoid messing up scripts which do "adb reboot && adb wait-for-device"
-    while(1) { pause(); }
+    while(1) {
+        pause();
+    }
 cleanup:
     free(arg);
     adb_close(fd);
 }
 
-void reverse_service(int fd, void* arg)
-{
+void reverse_service(int fd, void* arg) {
     const char* command = arg;
 
     if (handle_forward_request(command, kTransportAny, NULL, fd) < 0) {
@@ -154,8 +150,7 @@ void reverse_service(int fd, void* arg)
 
 #endif
 
-static int create_service_thread(void (*func)(int, void *), void *cookie)
-{
+static int create_service_thread(void (*func)(int, void *), void *cookie) {
     stinfo *sti;
     adb_thread_t t;
     int s[2];
@@ -171,7 +166,7 @@ static int create_service_thread(void (*func)(int, void *), void *cookie)
     sti->cookie = cookie;
     sti->fd = s[1];
 
-    if(adb_thread_create( &t, service_bootstrap_func, sti)){
+    if(adb_thread_create( &t, service_bootstrap_func, sti)) {
         free(sti);
         adb_close(s[0]);
         adb_close(s[1]);
@@ -185,8 +180,7 @@ static int create_service_thread(void (*func)(int, void *), void *cookie)
 
 #if !ADB_HOST
 
-static void init_subproc_child()
-{
+static void init_subproc_child() {
     setsid();
 
     // Set OOM score adjustment to prevent killing
@@ -195,12 +189,11 @@ static void init_subproc_child()
         adb_write(fd, "0", 1);
         adb_close(fd);
     } else {
-       D("adb: unable to update oom_score_adj\n");
+        D("adb: unable to update oom_score_adj\n");
     }
 }
 
-static int create_subproc_pty(const char *cmd, const char *arg0, const char *arg1, pid_t *pid)
-{
+static int create_subproc_pty(const char *cmd, const char *arg0, const char *arg1, pid_t *pid) {
     D("create_subproc_pty(cmd=%s, arg0=%s, arg1=%s)\n", cmd, arg0, arg1);
 #ifdef HAVE_WIN32_PROC
     fprintf(stderr, "error: create_subproc_pty not implemented on Win32 (%s %s %s)\n", cmd, arg0, arg1);
@@ -209,7 +202,7 @@ static int create_subproc_pty(const char *cmd, const char *arg0, const char *arg
     int ptm;
 
     ptm = unix_open("/dev/ptmx", O_RDWR | O_CLOEXEC); // | O_NOCTTY);
-    if(ptm < 0){
+    if(ptm < 0) {
         printf("[ cannot open /dev/ptmx - %s ]\n",strerror(errno));
         return -1;
     }
@@ -254,8 +247,7 @@ static int create_subproc_pty(const char *cmd, const char *arg0, const char *arg
 #endif /* !HAVE_WIN32_PROC */
 }
 
-static int create_subproc_raw(const char *cmd, const char *arg0, const char *arg1, pid_t *pid)
-{
+static int create_subproc_raw(const char *cmd, const char *arg0, const char *arg1, pid_t *pid) {
     D("create_subproc_raw(cmd=%s, arg0=%s, arg1=%s)\n", cmd, arg0, arg1);
 #ifdef HAVE_WIN32_PROC
     fprintf(stderr, "error: create_subproc_raw not implemented on Win32 (%s %s %s)\n", cmd, arg0, arg1);
@@ -306,8 +298,7 @@ static int create_subproc_raw(const char *cmd, const char *arg0, const char *arg
 #endif
 
 #if !ADB_HOST
-static void subproc_waiter_service(int fd, void *cookie)
-{
+static void subproc_waiter_service(int fd, void *cookie) {
     pid_t pid = (pid_t) (uintptr_t) cookie;
 
     D("entered. fd=%d of pid=%d\n", fd, pid);
@@ -326,19 +317,18 @@ static void subproc_waiter_service(int fd, void *cookie)
                 D("*** Exit code %d\n", WEXITSTATUS(status));
                 break;
             }
-         }
+        }
     }
     D("shell exited fd=%d of pid=%d err=%d\n", fd, pid, errno);
     if (SHELL_EXIT_NOTIFY_FD >=0) {
-      int res;
-      res = writex(SHELL_EXIT_NOTIFY_FD, &fd, sizeof(fd));
-      D("notified shell exit via fd=%d for pid=%d res=%d errno=%d\n",
-        SHELL_EXIT_NOTIFY_FD, pid, res, errno);
+        int res;
+        res = writex(SHELL_EXIT_NOTIFY_FD, &fd, sizeof(fd));
+        D("notified shell exit via fd=%d for pid=%d res=%d errno=%d\n",
+          SHELL_EXIT_NOTIFY_FD, pid, res, errno);
     }
 }
 
-static int create_subproc_thread(const char *name, const subproc_mode mode)
-{
+static int create_subproc_thread(const char *name, const subproc_mode mode) {
     stinfo *sti;
     adb_thread_t t;
     int ret_fd;
@@ -346,9 +336,11 @@ static int create_subproc_thread(const char *name, const subproc_mode mode)
 
     const char *arg0, *arg1;
     if (name == 0 || *name == 0) {
-        arg0 = "-"; arg1 = 0;
+        arg0 = "-";
+        arg1 = 0;
     } else {
-        arg0 = "-c"; arg1 = name;
+        arg0 = "-c";
+        arg1 = name;
     }
 
     switch (mode) {
@@ -382,8 +374,7 @@ static int create_subproc_thread(const char *name, const subproc_mode mode)
 }
 #endif
 
-int service_to_fd(const char *name)
-{
+int service_to_fd(const char *name) {
     int ret = -1;
 
     if(!strncmp(name, "tcp:", 4)) {
@@ -403,16 +394,16 @@ int service_to_fd(const char *name)
 #ifndef HAVE_WINSOCK   /* winsock doesn't implement unix domain sockets */
     } else if(!strncmp(name, "local:", 6)) {
         ret = socket_local_client(name + 6,
-                ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
+                                  ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
     } else if(!strncmp(name, "localreserved:", 14)) {
         ret = socket_local_client(name + 14,
-                ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
+                                  ANDROID_SOCKET_NAMESPACE_RESERVED, SOCK_STREAM);
     } else if(!strncmp(name, "localabstract:", 14)) {
         ret = socket_local_client(name + 14,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+                                  ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
     } else if(!strncmp(name, "localfilesystem:", 16)) {
         ret = socket_local_client(name + 16,
-                ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
+                                  ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
 #endif
 #if !ADB_HOST
     } else if(!strncmp("dev:", name, 4)) {
@@ -484,8 +475,7 @@ struct state_info {
     int state;
 };
 
-static void wait_for_state(int fd, void* cookie)
-{
+static void wait_for_state(int fd, void* cookie) {
     struct state_info* sinfo = cookie;
     char* err = "unknown error";
 
@@ -505,8 +495,7 @@ static void wait_for_state(int fd, void* cookie)
     D("wait_for_state is done\n");
 }
 
-static void connect_device(char* host, char* buffer, int buffer_size)
-{
+static void connect_device(char* host, char* buffer, int buffer_size) {
     int port, fd;
     char* portstr = strchr(host, ':');
     char hostbuf[100];
@@ -550,13 +539,12 @@ static void connect_device(char* host, char* buffer, int buffer_size)
     }
 }
 
-void connect_emulator(char* port_spec, char* buffer, int buffer_size)
-{
+void connect_emulator(char* port_spec, char* buffer, int buffer_size) {
     char* port_separator = strchr(port_spec, ',');
     if (!port_separator) {
         snprintf(buffer, buffer_size,
-                "unable to parse '%s' as <console port>,<adb port>",
-                port_spec);
+                 "unable to parse '%s' as <console port>,<adb port>",
+                 port_spec);
         return;
     }
 
@@ -567,8 +555,8 @@ void connect_emulator(char* port_spec, char* buffer, int buffer_size)
     if (!(console_port > 0 && adb_port > 0)) {
         *(port_separator - 1) = ',';
         snprintf(buffer, buffer_size,
-                "Invalid port numbers: Expected positive numbers, got '%s'",
-                port_spec);
+                 "Invalid port numbers: Expected positive numbers, got '%s'",
+                 port_spec);
         return;
     }
 
@@ -582,7 +570,7 @@ void connect_emulator(char* port_spec, char* buffer, int buffer_size)
     atransport* known_emulator = find_emulator_transport_by_adb_port(adb_port);
     if (known_emulator != NULL) {
         snprintf(buffer, buffer_size,
-                "Emulator on port %d already registered.", adb_port);
+                 "Emulator on port %d already registered.", adb_port);
         return;
     }
 
@@ -597,16 +585,15 @@ void connect_emulator(char* port_spec, char* buffer, int buffer_size)
     /* Preconditions met, try to connect to the emulator. */
     if (!local_connect_arbitrary_ports(console_port, adb_port)) {
         snprintf(buffer, buffer_size,
-                "Connected to emulator on ports %d,%d", console_port, adb_port);
+                 "Connected to emulator on ports %d,%d", console_port, adb_port);
     } else {
         snprintf(buffer, buffer_size,
-                "Could not connect to emulator on ports %d,%d",
-                console_port, adb_port);
+                 "Could not connect to emulator on ports %d,%d",
+                 console_port, adb_port);
     }
 }
 
-static void connect_service(int fd, void* cookie)
-{
+static void connect_service(int fd, void* cookie) {
     char buf[4096];
     char resp[4096];
     char *host = cookie;
@@ -625,8 +612,7 @@ static void connect_service(int fd, void* cookie)
 #endif
 
 #if ADB_HOST
-asocket*  host_service_to_socket(const char*  name, const char *serial)
-{
+asocket*  host_service_to_socket(const char*  name, const char *serial) {
     if (!strcmp(name,"track-devices")) {
         return create_device_tracker();
     } else if (!strncmp(name, "wait-for-", strlen("wait-for-"))) {

@@ -17,14 +17,13 @@
 #import <Carbon/Carbon.h>
 #include <unistd.h>
 
-void get_my_path(char *s, size_t maxLen)
-{
+void get_my_path(char *s, size_t maxLen) {
     ProcessSerialNumber psn;
     GetCurrentProcess(&psn);
     CFDictionaryRef dict;
     dict = ProcessInformationCopyDictionary(&psn, 0xffffffff);
     CFStringRef value = (CFStringRef)CFDictionaryGetValue(dict,
-                CFSTR("CFBundleExecutable"));
+                        CFSTR("CFBundleExecutable"));
     CFStringGetCString(value, s, maxLen, kCFStringEncodingUTF8);
 }
 

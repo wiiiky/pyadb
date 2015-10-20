@@ -37,8 +37,7 @@
 #define cpu_to_le16(x)  htole16(x)
 #define cpu_to_le32(x)  htole32(x)
 
-struct usb_handle
-{
+struct usb_handle {
     adb_cond_t notify;
     adb_mutex_t lock;
 
@@ -146,8 +145,7 @@ static const struct {
 
 
 
-static void *usb_adb_open_thread(void *x)
-{
+static void *usb_adb_open_thread(void *x) {
     struct usb_handle *usb = (struct usb_handle *)x;
     int fd;
 
@@ -183,38 +181,35 @@ static void *usb_adb_open_thread(void *x)
     return 0;
 }
 
-static int usb_adb_write(usb_handle *h, const void *data, int len)
-{
+static int usb_adb_write(usb_handle *h, const void *data, int len) {
     int n;
 
     D("about to write (fd=%d, len=%d)\n", h->fd, len);
     n = adb_write(h->fd, data, len);
     if(n != len) {
         D("ERROR: fd = %d, n = %d, errno = %d (%s)\n",
-            h->fd, n, errno, strerror(errno));
+          h->fd, n, errno, strerror(errno));
         return -1;
     }
     D("[ done fd=%d ]\n", h->fd);
     return 0;
 }
 
-static int usb_adb_read(usb_handle *h, void *data, int len)
-{
+static int usb_adb_read(usb_handle *h, void *data, int len) {
     int n;
 
     D("about to read (fd=%d, len=%d)\n", h->fd, len);
     n = adb_read(h->fd, data, len);
     if(n != len) {
         D("ERROR: fd = %d, n = %d, errno = %d (%s)\n",
-            h->fd, n, errno, strerror(errno));
+          h->fd, n, errno, strerror(errno));
         return -1;
     }
     D("[ done fd=%d ]\n", h->fd);
     return 0;
 }
 
-static void usb_adb_kick(usb_handle *h)
-{
+static void usb_adb_kick(usb_handle *h) {
     D("usb_kick\n");
     adb_mutex_lock(&h->lock);
     adb_close(h->fd);
@@ -225,8 +220,7 @@ static void usb_adb_kick(usb_handle *h)
     adb_mutex_unlock(&h->lock);
 }
 
-static void usb_adb_init()
-{
+static void usb_adb_init() {
     usb_handle *h;
     adb_thread_t tid;
     int fd;
@@ -241,27 +235,26 @@ static void usb_adb_init()
     adb_cond_init(&h->notify, 0);
     adb_mutex_init(&h->lock, 0);
 
-    // Open the file /dev/android_adb_enable to trigger 
+    // Open the file /dev/android_adb_enable to trigger
     // the enabling of the adb USB function in the kernel.
     // We never touch this file again - just leave it open
     // indefinitely so the kernel will know when we are running
     // and when we are not.
     fd = unix_open("/dev/android_adb_enable", O_RDWR);
     if (fd < 0) {
-       D("failed to open /dev/android_adb_enable\n");
+        D("failed to open /dev/android_adb_enable\n");
     } else {
         close_on_exec(fd);
     }
 
     D("[ usb_init - starting thread ]\n");
-    if(adb_thread_create(&tid, usb_adb_open_thread, h)){
+    if(adb_thread_create(&tid, usb_adb_open_thread, h)) {
         fatal_errno("cannot create usb thread");
     }
 }
 
 
-static void init_functionfs(struct usb_handle *h)
-{
+static void init_functionfs(struct usb_handle *h) {
     ssize_t ret;
 
     if (h->control < 0) { // might have already done this before
@@ -315,8 +308,7 @@ err:
     return;
 }
 
-static void *usb_ffs_open_thread(void *x)
-{
+static void *usb_ffs_open_thread(void *x) {
     struct usb_handle *usb = (struct usb_handle *)x;
 
     while (1) {
@@ -343,8 +335,7 @@ static void *usb_ffs_open_thread(void *x)
     return 0;
 }
 
-static int bulk_write(int bulk_in, const char *buf, size_t length)
-{
+static int bulk_write(int bulk_in, const char *buf, size_t length) {
     size_t count = 0;
     int ret;
 
@@ -362,23 +353,21 @@ static int bulk_write(int bulk_in, const char *buf, size_t length)
     return count;
 }
 
-static int usb_ffs_write(usb_handle *h, const void *data, int len)
-{
+static int usb_ffs_write(usb_handle *h, const void *data, int len) {
     int n;
 
     D("about to write (fd=%d, len=%d)\n", h->bulk_in, len);
     n = bulk_write(h->bulk_in, data, len);
     if (n != len) {
         D("ERROR: fd = %d, n = %d, errno = %d (%s)\n",
-            h->bulk_in, n, errno, strerror(errno));
+          h->bulk_in, n, errno, strerror(errno));
         return -1;
     }
     D("[ done fd=%d ]\n", h->bulk_in);
     return 0;
 }
 
-static int bulk_read(int bulk_out, char *buf, size_t length)
-{
+static int bulk_read(int bulk_out, char *buf, size_t length) {
     size_t count = 0;
     int ret;
 
@@ -387,7 +376,7 @@ static int bulk_read(int bulk_out, char *buf, size_t length)
         if (ret < 0) {
             if (errno != EINTR) {
                 D("[ bulk_read failed fd=%d length=%zu count=%zu ]\n",
-                                           bulk_out, length, count);
+                  bulk_out, length, count);
                 return ret;
             }
         } else {
@@ -398,23 +387,21 @@ static int bulk_read(int bulk_out, char *buf, size_t length)
     return count;
 }
 
-static int usb_ffs_read(usb_handle *h, void *data, int len)
-{
+static int usb_ffs_read(usb_handle *h, void *data, int len) {
     int n;
 
     D("about to read (fd=%d, len=%d)\n", h->bulk_out, len);
     n = bulk_read(h->bulk_out, data, len);
     if (n != len) {
         D("ERROR: fd = %d, n = %d, errno = %d (%s)\n",
-            h->bulk_out, n, errno, strerror(errno));
+          h->bulk_out, n, errno, strerror(errno));
         return -1;
     }
     D("[ done fd=%d ]\n", h->bulk_out);
     return 0;
 }
 
-static void usb_ffs_kick(usb_handle *h)
-{
+static void usb_ffs_kick(usb_handle *h) {
     int err;
 
     err = ioctl(h->bulk_in, FUNCTIONFS_CLEAR_HALT);
@@ -439,8 +426,7 @@ static void usb_ffs_kick(usb_handle *h)
     adb_mutex_unlock(&h->lock);
 }
 
-static void usb_ffs_init()
-{
+static void usb_ffs_init() {
     usb_handle *h;
     adb_thread_t tid;
 
@@ -460,38 +446,32 @@ static void usb_ffs_init()
     adb_mutex_init(&h->lock, 0);
 
     D("[ usb_init - starting thread ]\n");
-    if (adb_thread_create(&tid, usb_ffs_open_thread, h)){
+    if (adb_thread_create(&tid, usb_ffs_open_thread, h)) {
         fatal_errno("[ cannot create usb thread ]\n");
     }
 }
 
-void usb_init()
-{
+void usb_init() {
     if (access(USB_FFS_ADB_EP0, F_OK) == 0)
         usb_ffs_init();
     else
         usb_adb_init();
 }
 
-void usb_cleanup()
-{
+void usb_cleanup() {
 }
 
-int usb_write(usb_handle *h, const void *data, int len)
-{
+int usb_write(usb_handle *h, const void *data, int len) {
     return h->write(h, data, len);
 }
 
-int usb_read(usb_handle *h, void *data, int len)
-{
+int usb_read(usb_handle *h, void *data, int len) {
     return h->read(h, data, len);
 }
-int usb_close(usb_handle *h)
-{
+int usb_close(usb_handle *h) {
     return 0;
 }
 
-void usb_kick(usb_handle *h)
-{
+void usb_kick(usb_handle *h) {
     h->kick(h);
 }

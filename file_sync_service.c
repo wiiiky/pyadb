@@ -44,8 +44,7 @@ static bool is_on_vendor(const char *name) {
     return (strncmp(VENDOR, name, strlen(VENDOR)) == 0);
 }
 
-static int mkdirs(char *name)
-{
+static int mkdirs(char *name) {
     int ret;
     char *x = name + 1;
     uid_t uid = -1;
@@ -80,8 +79,7 @@ static int mkdirs(char *name)
     return 0;
 }
 
-static int do_stat(int s, const char *path)
-{
+static int do_stat(int s, const char *path) {
     syncmsg msg;
     struct stat st;
 
@@ -100,8 +98,7 @@ static int do_stat(int s, const char *path)
     return writex(s, &msg.stat, sizeof(msg.stat));
 }
 
-static int do_list(int s, const char *path)
-{
+static int do_list(int s, const char *path) {
     DIR *d;
     struct dirent *de;
     struct stat st;
@@ -124,8 +121,8 @@ static int do_list(int s, const char *path)
     while((de = readdir(d))) {
         int len = strlen(de->d_name);
 
-            /* not supposed to be possible, but
-               if it does happen, let's not buffer overrun */
+        /* not supposed to be possible, but
+           if it does happen, let's not buffer overrun */
         if(len > 256) continue;
 
         strcpy(fname, de->d_name);
@@ -136,7 +133,7 @@ static int do_list(int s, const char *path)
             msg.dent.namelen = htoll(len);
 
             if(writex(s, &msg.dent, sizeof(msg.dent)) ||
-               writex(s, de->d_name, len)) {
+                    writex(s, de->d_name, len)) {
                 closedir(d);
                 return -1;
             }
@@ -154,8 +151,7 @@ done:
     return writex(s, &msg.dent, sizeof(msg.dent));
 }
 
-static int fail_message(int s, const char *reason)
-{
+static int fail_message(int s, const char *reason) {
     syncmsg msg;
     int len = strlen(reason);
 
@@ -164,21 +160,19 @@ static int fail_message(int s, const char *reason)
     msg.data.id = ID_FAIL;
     msg.data.size = htoll(len);
     if(writex(s, &msg.data, sizeof(msg.data)) ||
-       writex(s, reason, len)) {
+            writex(s, reason, len)) {
         return -1;
     } else {
         return 0;
     }
 }
 
-static int fail_errno(int s)
-{
+static int fail_errno(int s) {
     return fail_message(s, strerror(errno));
 }
 
 static int handle_send_file(int s, char *path, uid_t uid,
-        gid_t gid, mode_t mode, char *buffer, bool do_unlink)
-{
+                            gid_t gid, mode_t mode, char *buffer, bool do_unlink) {
     syncmsg msg;
     unsigned int timestamp = 0;
     int fd;
@@ -271,8 +265,7 @@ fail:
 }
 
 #ifdef HAVE_SYMLINKS
-static int handle_send_link(int s, char *path, char *buffer)
-{
+static int handle_send_link(int s, char *path, char *buffer) {
     syncmsg msg;
     unsigned int len;
     int ret;
@@ -323,8 +316,7 @@ static int handle_send_link(int s, char *path, char *buffer)
 }
 #endif /* HAVE_SYMLINKS */
 
-static int do_send(int s, char *path, char *buffer)
-{
+static int do_send(int s, char *path, char *buffer) {
     char *tmp;
     unsigned int mode;
     int is_link, ret;
@@ -383,8 +375,7 @@ static int do_send(int s, char *path, char *buffer)
     return ret;
 }
 
-static int do_recv(int s, const char *path, char *buffer)
-{
+static int do_recv(int s, const char *path, char *buffer) {
     syncmsg msg;
     int fd, r;
 
@@ -406,7 +397,7 @@ static int do_recv(int s, const char *path, char *buffer)
         }
         msg.data.size = htoll(r);
         if(writex(s, &msg.data, sizeof(msg.data)) ||
-           writex(s, buffer, r)) {
+                writex(s, buffer, r)) {
             adb_close(fd);
             return -1;
         }
@@ -423,8 +414,7 @@ static int do_recv(int s, const char *path, char *buffer)
     return 0;
 }
 
-void file_sync_service(int fd, void *cookie)
-{
+void file_sync_service(int fd, void *cookie) {
     syncmsg msg;
     char name[1025];
     unsigned namelen;

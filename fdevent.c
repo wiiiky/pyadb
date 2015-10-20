@@ -2,16 +2,16 @@
 **
 ** Copyright 2006, Brian Swetland <swetland@frotz.net>
 **
-** Licensed under the Apache License, Version 2.0 (the "License"); 
-** you may not use this file except in compliance with the License. 
-** You may obtain a copy of the License at 
+** Licensed under the Apache License, Version 2.0 (the "License");
+** you may not use this file except in compliance with the License.
+** You may obtain a copy of the License at
 **
-**     http://www.apache.org/licenses/LICENSE-2.0 
+**     http://www.apache.org/licenses/LICENSE-2.0
 **
-** Unless required by applicable law or agreed to in writing, software 
-** distributed under the License is distributed on an "AS IS" BASIS, 
-** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. 
-** See the License for the specific language governing permissions and 
+** Unless required by applicable law or agreed to in writing, software
+** distributed under the License is distributed on an "AS IS" BASIS,
+** WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+** See the License for the specific language governing permissions and
 ** limitations under the License.
 */
 
@@ -46,8 +46,7 @@
 // of the shell's pseudo-tty master. I.e. force close it.
 int SHELL_EXIT_NOTIFY_FD = -1;
 
-static void fatal(const char *fn, const char *fmt, ...)
-{
+static void fatal(const char *fn, const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     fprintf(stderr, "%s:", fn);
@@ -59,8 +58,7 @@ static void fatal(const char *fn, const char *fmt, ...)
 #define FATAL(x...) fatal(__FUNCTION__, x)
 
 #if DEBUG
-static void dump_fde(fdevent *fde, const char *info)
-{
+static void dump_fde(fdevent *fde, const char *info) {
     adb_mutex_lock(&D_lock);
     fprintf(stderr,"FDE #%03d %c%c%c %s\n", fde->fd,
             fde->state & FDE_READ ? 'R' : ' ',
@@ -100,9 +98,8 @@ static int fd_table_max = 0;
 
 static int epoll_fd = -1;
 
-static void fdevent_init()
-{
-        /* XXX: what's a good size for the passed in hint? */
+static void fdevent_init() {
+    /* XXX: what's a good size for the passed in hint? */
     epoll_fd = epoll_create(256);
 
     if(epoll_fd < 0) {
@@ -110,12 +107,11 @@ static void fdevent_init()
         exit(1);
     }
 
-        /* mark for close-on-exec */
+    /* mark for close-on-exec */
     fcntl(epoll_fd, F_SETFD, FD_CLOEXEC);
 }
 
-static void fdevent_connect(fdevent *fde)
-{
+static void fdevent_connect(fdevent *fde) {
     struct epoll_event ev;
 
     memset(&ev, 0, sizeof(ev));
@@ -130,24 +126,22 @@ static void fdevent_connect(fdevent *fde)
 #endif
 }
 
-static void fdevent_disconnect(fdevent *fde)
-{
+static void fdevent_disconnect(fdevent *fde) {
     struct epoll_event ev;
 
     memset(&ev, 0, sizeof(ev));
     ev.events = 0;
     ev.data.ptr = fde;
 
-        /* technically we only need to delete if we
-        ** were actively monitoring events, but let's
-        ** be aggressive and do it anyway, just in case
-        ** something's out of sync
-        */
+    /* technically we only need to delete if we
+    ** were actively monitoring events, but let's
+    ** be aggressive and do it anyway, just in case
+    ** something's out of sync
+    */
     epoll_ctl(epoll_fd, EPOLL_CTL_DEL, fde->fd, &ev);
 }
 
-static void fdevent_update(fdevent *fde, unsigned events)
-{
+static void fdevent_update(fdevent *fde, unsigned events) {
     struct epoll_event ev;
     int active;
 
@@ -164,10 +158,10 @@ static void fdevent_update(fdevent *fde, unsigned events)
     fde->state = (fde->state & FDE_STATEMASK) | events;
 
     if(active) {
-            /* we're already active. if we're changing to *no*
-            ** events being monitored, we need to delete, otherwise
-            ** we need to just modify
-            */
+        /* we're already active. if we're changing to *no*
+        ** events being monitored, we need to delete, otherwise
+        ** we need to just modify
+        */
         if(ev.events) {
             if(epoll_ctl(epoll_fd, EPOLL_CTL_MOD, fde->fd, &ev)) {
                 perror("epoll_ctl() failed\n");
@@ -180,9 +174,9 @@ static void fdevent_update(fdevent *fde, unsigned events)
             }
         }
     } else {
-            /* we're not active.  if we're watching events, we need
-            ** to add, otherwise we can just do nothing
-            */
+        /* we're not active.  if we're watching events, we need
+        ** to add, otherwise we can just do nothing
+        */
         if(ev.events) {
             if(epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fde->fd, &ev)) {
                 perror("epoll_ctl() failed\n");
@@ -192,8 +186,7 @@ static void fdevent_update(fdevent *fde, unsigned events)
     }
 }
 
-static void fdevent_process()
-{
+static void fdevent_process() {
     struct epoll_event events[256];
     fdevent *fde;
     int i, n;
@@ -241,22 +234,19 @@ static fd_set error_fds;
 
 static int select_n = 0;
 
-static void fdevent_init(void)
-{
+static void fdevent_init(void) {
     FD_ZERO(&read_fds);
     FD_ZERO(&write_fds);
     FD_ZERO(&error_fds);
 }
 
-static void fdevent_connect(fdevent *fde)
-{
+static void fdevent_connect(fdevent *fde) {
     if(fde->fd >= select_n) {
         select_n = fde->fd + 1;
     }
 }
 
-static void fdevent_disconnect(fdevent *fde)
-{
+static void fdevent_disconnect(fdevent *fde) {
     int i, n;
 
     FD_CLR(fde->fd, &read_fds);
@@ -269,8 +259,7 @@ static void fdevent_disconnect(fdevent *fde)
     select_n = n + 1;
 }
 
-static void fdevent_update(fdevent *fde, unsigned events)
-{
+static void fdevent_update(fdevent *fde, unsigned events) {
     if(events & FDE_READ) {
         FD_SET(fde->fd, &read_fds);
     } else {
@@ -293,8 +282,7 @@ static void fdevent_update(fdevent *fde, unsigned events)
 /* Looks at fd_table[] for bad FDs and sets bit in fds.
 ** Returns the number of bad FDs.
 */
-static int fdevent_fd_check(fd_set *fds)
-{
+static int fdevent_fd_check(fd_set *fds) {
     int i, n = 0;
     fdevent *fde;
 
@@ -314,9 +302,8 @@ static int fdevent_fd_check(fd_set *fds)
 #if !DEBUG
 static inline void dump_all_fds(const char *extra_msg) {}
 #else
-static void dump_all_fds(const char *extra_msg)
-{
-int i;
+static void dump_all_fds(const char *extra_msg) {
+    int i;
     fdevent *fde;
     // per fd: 4 digits (but really: log10(FD_SETSIZE)), 1 staus, 1 blank
     char msg_buff[FD_SETSIZE*6 + 1], *pb=msg_buff;
@@ -353,8 +340,7 @@ int i;
 }
 #endif
 
-static void fdevent_process()
-{
+static void fdevent_process() {
     int i, n;
     fdevent *fde;
     unsigned events;
@@ -374,7 +360,8 @@ static void fdevent_process()
 
     if(n < 0) {
         switch(saved_errno) {
-        case EINTR: return;
+        case EINTR:
+            return;
         case EBADF:
             // Can't trust the FD sets after an error.
             FD_ZERO(&wfd);
@@ -394,19 +381,28 @@ static void fdevent_process()
 
     for(i = 0; (i < select_n) && (n > 0); i++) {
         events = 0;
-        if(FD_ISSET(i, &rfd)) { events |= FDE_READ; n--; }
-        if(FD_ISSET(i, &wfd)) { events |= FDE_WRITE; n--; }
-        if(FD_ISSET(i, &efd)) { events |= FDE_ERROR; n--; }
+        if(FD_ISSET(i, &rfd)) {
+            events |= FDE_READ;
+            n--;
+        }
+        if(FD_ISSET(i, &wfd)) {
+            events |= FDE_WRITE;
+            n--;
+        }
+        if(FD_ISSET(i, &efd)) {
+            events |= FDE_ERROR;
+            n--;
+        }
 
         if(events) {
             fde = fd_table[i];
             if(fde == 0)
-              FATAL("missing fde for fd %d\n", i);
+                FATAL("missing fde for fd %d\n", i);
 
             fde->events |= events;
 
             D("got events fde->fd=%d events=%04x, state=%04x\n",
-                fde->fd, fde->events, fde->state);
+              fde->fd, fde->events, fde->state);
             if(fde->state & FDE_PENDING) continue;
             fde->state |= FDE_PENDING;
             fdevent_plist_enqueue(fde);
@@ -416,8 +412,7 @@ static void fdevent_process()
 
 #endif
 
-static void fdevent_register(fdevent *fde)
-{
+static void fdevent_register(fdevent *fde) {
     if(fde->fd < 0) {
         FATAL("bogus negative fd (%d)\n", fde->fd);
     }
@@ -444,8 +439,7 @@ static void fdevent_register(fdevent *fde)
     fd_table[fde->fd] = fde;
 }
 
-static void fdevent_unregister(fdevent *fde)
-{
+static void fdevent_unregister(fdevent *fde) {
     if((fde->fd < 0) || (fde->fd >= fd_table_max)) {
         FATAL("fd out of range (%d)\n", fde->fd);
     }
@@ -462,8 +456,7 @@ static void fdevent_unregister(fdevent *fde)
     }
 }
 
-static void fdevent_plist_enqueue(fdevent *node)
-{
+static void fdevent_plist_enqueue(fdevent *node) {
     fdevent *list = &list_pending;
 
     node->next = list;
@@ -472,16 +465,14 @@ static void fdevent_plist_enqueue(fdevent *node)
     list->prev = node;
 }
 
-static void fdevent_plist_remove(fdevent *node)
-{
+static void fdevent_plist_remove(fdevent *node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
     node->next = 0;
     node->prev = 0;
 }
 
-static fdevent *fdevent_plist_dequeue(void)
-{
+static fdevent *fdevent_plist_dequeue(void) {
     fdevent *list = &list_pending;
     fdevent *node = list->next;
 
@@ -495,8 +486,7 @@ static fdevent *fdevent_plist_dequeue(void)
     return node;
 }
 
-static void fdevent_call_fdfunc(fdevent* fde)
-{
+static void fdevent_call_fdfunc(fdevent* fde) {
     unsigned events = fde->events;
     fde->events = 0;
     if(!(fde->state & FDE_PENDING)) return;
@@ -505,8 +495,7 @@ static void fdevent_call_fdfunc(fdevent* fde)
     fde->func(fde->fd, events, fde->arg);
 }
 
-static void fdevent_subproc_event_func(int fd, unsigned ev, void *userdata)
-{
+static void fdevent_subproc_event_func(int fd, unsigned ev, void *userdata) {
 
     D("subproc handling on fd=%d ev=%04x\n", fd, ev);
 
@@ -517,54 +506,53 @@ static void fdevent_subproc_event_func(int fd, unsigned ev, void *userdata)
     fdevent *fde = fd_table[fd];
     fdevent_add(fde, FDE_READ);
 
-    if(ev & FDE_READ){
-      int subproc_fd;
+    if(ev & FDE_READ) {
+        int subproc_fd;
 
-      if(readx(fd, &subproc_fd, sizeof(subproc_fd))) {
-          FATAL("Failed to read the subproc's fd from fd=%d\n", fd);
-      }
-      if((subproc_fd < 0) || (subproc_fd >= fd_table_max)) {
-          D("subproc_fd %d out of range 0, fd_table_max=%d\n",
-            subproc_fd, fd_table_max);
-          return;
-      }
-      fdevent *subproc_fde = fd_table[subproc_fd];
-      if(!subproc_fde) {
-          D("subproc_fd %d cleared from fd_table\n", subproc_fd);
-          return;
-      }
-      if(subproc_fde->fd != subproc_fd) {
-          // Already reallocated?
-          D("subproc_fd %d != fd_table[].fd %d\n", subproc_fd, subproc_fde->fd);
-          return;
-      }
+        if(readx(fd, &subproc_fd, sizeof(subproc_fd))) {
+            FATAL("Failed to read the subproc's fd from fd=%d\n", fd);
+        }
+        if((subproc_fd < 0) || (subproc_fd >= fd_table_max)) {
+            D("subproc_fd %d out of range 0, fd_table_max=%d\n",
+              subproc_fd, fd_table_max);
+            return;
+        }
+        fdevent *subproc_fde = fd_table[subproc_fd];
+        if(!subproc_fde) {
+            D("subproc_fd %d cleared from fd_table\n", subproc_fd);
+            return;
+        }
+        if(subproc_fde->fd != subproc_fd) {
+            // Already reallocated?
+            D("subproc_fd %d != fd_table[].fd %d\n", subproc_fd, subproc_fde->fd);
+            return;
+        }
 
-      subproc_fde->force_eof = 1;
+        subproc_fde->force_eof = 1;
 
-      int rcount = 0;
-      ioctl(subproc_fd, FIONREAD, &rcount);
-      D("subproc with fd=%d  has rcount=%d err=%d\n",
-        subproc_fd, rcount, errno);
+        int rcount = 0;
+        ioctl(subproc_fd, FIONREAD, &rcount);
+        D("subproc with fd=%d  has rcount=%d err=%d\n",
+          subproc_fd, rcount, errno);
 
-      if(rcount) {
-        // If there is data left, it will show up in the select().
-        // This works because there is no other thread reading that
-        // data when in this fd_func().
-        return;
-      }
+        if(rcount) {
+            // If there is data left, it will show up in the select().
+            // This works because there is no other thread reading that
+            // data when in this fd_func().
+            return;
+        }
 
-      D("subproc_fde.state=%04x\n", subproc_fde->state);
-      subproc_fde->events |= FDE_READ;
-      if(subproc_fde->state & FDE_PENDING) {
-        return;
-      }
-      subproc_fde->state |= FDE_PENDING;
-      fdevent_call_fdfunc(subproc_fde);
+        D("subproc_fde.state=%04x\n", subproc_fde->state);
+        subproc_fde->events |= FDE_READ;
+        if(subproc_fde->state & FDE_PENDING) {
+            return;
+        }
+        subproc_fde->state |= FDE_PENDING;
+        fdevent_call_fdfunc(subproc_fde);
     }
 }
 
-fdevent *fdevent_create(int fd, fd_func func, void *arg)
-{
+fdevent *fdevent_create(int fd, fd_func func, void *arg) {
     fdevent *fde = (fdevent*) malloc(sizeof(fdevent));
     if(fde == 0) return 0;
     fdevent_install(fde, fd, func, arg);
@@ -572,8 +560,7 @@ fdevent *fdevent_create(int fd, fd_func func, void *arg)
     return fde;
 }
 
-void fdevent_destroy(fdevent *fde)
-{
+void fdevent_destroy(fdevent *fde) {
     if(fde == 0) return;
     if(!(fde->state & FDE_CREATED)) {
         FATAL("fde %p not created by fdevent_create()\n", fde);
@@ -581,8 +568,7 @@ void fdevent_destroy(fdevent *fde)
     fdevent_remove(fde);
 }
 
-void fdevent_install(fdevent *fde, int fd, fd_func func, void *arg)
-{
+void fdevent_install(fdevent *fde, int fd, fd_func func, void *arg) {
     memset(fde, 0, sizeof(fdevent));
     fde->state = FDE_ACTIVE;
     fde->fd = fd;
@@ -599,8 +585,7 @@ void fdevent_install(fdevent *fde, int fd, fd_func func, void *arg)
     fde->state |= FDE_ACTIVE;
 }
 
-void fdevent_remove(fdevent *fde)
-{
+void fdevent_remove(fdevent *fde) {
     if(fde->state & FDE_PENDING) {
         fdevent_plist_remove(fde);
     }
@@ -616,8 +601,7 @@ void fdevent_remove(fdevent *fde)
 }
 
 
-void fdevent_set(fdevent *fde, unsigned events)
-{
+void fdevent_set(fdevent *fde, unsigned events) {
     events &= FDE_EVENTMASK;
 
     if((fde->state & FDE_EVENTMASK) == events) return;
@@ -630,10 +614,10 @@ void fdevent_set(fdevent *fde, unsigned events)
     fde->state = (fde->state & FDE_STATEMASK) | events;
 
     if(fde->state & FDE_PENDING) {
-            /* if we're pending, make sure
-            ** we don't signal an event that
-            ** is no longer wanted.
-            */
+        /* if we're pending, make sure
+        ** we don't signal an event that
+        ** is no longer wanted.
+        */
         fde->events &= (~events);
         if(fde->events == 0) {
             fdevent_plist_remove(fde);
@@ -642,20 +626,17 @@ void fdevent_set(fdevent *fde, unsigned events)
     }
 }
 
-void fdevent_add(fdevent *fde, unsigned events)
-{
+void fdevent_add(fdevent *fde, unsigned events) {
     fdevent_set(
         fde, (fde->state & FDE_EVENTMASK) | (events & FDE_EVENTMASK));
 }
 
-void fdevent_del(fdevent *fde, unsigned events)
-{
+void fdevent_del(fdevent *fde, unsigned events) {
     fdevent_set(
         fde, (fde->state & FDE_EVENTMASK) & (~(events & FDE_EVENTMASK)));
 }
 
-void fdevent_subproc_setup()
-{
+void fdevent_subproc_setup() {
     int s[2];
 
     if(adb_socketpair(s)) {
@@ -665,12 +646,11 @@ void fdevent_subproc_setup()
     fdevent *fde;
     fde = fdevent_create(s[1], fdevent_subproc_event_func, NULL);
     if(!fde)
-      FATAL("cannot create fdevent for shell-exit handler\n");
+        FATAL("cannot create fdevent for shell-exit handler\n");
     fdevent_add(fde, FDE_READ);
 }
 
-void fdevent_loop()
-{
+void fdevent_loop() {
     fdevent *fde;
     fdevent_subproc_setup();
 

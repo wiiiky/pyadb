@@ -15,44 +15,26 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 #include <Python.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <fdevent.h>
-#include <string.h>
-#include "adb.h"
+#include "wrapper.h"
 
 
-static PyObject *start_server(PyObject *self, PyObject *args){
-    int pfds[2];
-    if(pipe(pfds)){
-        Py_RETURN_FALSE;
+static PyObject *py_start_server(PyObject *self, PyObject *args, PyObject *keywds) {
+    unsigned short port = DEFAULT_ADB_PORT;
+    static char *kwlist[] = {"port", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "|H", kwlist, &port)) {
+        return NULL;
     }
-    pid_t pid = fork();
-    if(pid<0){
-        close(pfds[0]);
-        close(pfds[1]);
-        Py_RETURN_FALSE;
-    }else if(pid==0){
-        close(pfds[0]);
-        dup2(pfds[1], 2);
-        dup2(pfds[0], 1);
-        int r = adb_main(1, DEFAULT_ADB_PORT);
-        close(pfds[1]);
-        exit(r);
-    }
-    close(pfds[1]);
-    char buf[16];
-    int n = read(pfds[0], buf, sizeof(buf));
-    close(pfds[0]);
-    if(strncmp(buf,"OK",2)){
+    if(!start_server(1, port)) {
         Py_RETURN_FALSE;
     }
     Py_RETURN_TRUE;
 }
 
 static PyMethodDef ADBMethods[] = {
-    {"start_server", start_server, METH_VARARGS},
+    {
+        "start_server", (PyCFunction)py_start_server, METH_VARARGS | METH_KEYWORDS,
+        "启动adb守护进程"
+    },
     {NULL, NULL, 0, NULL}
 };
 
@@ -66,7 +48,7 @@ static struct PyModuleDef ADBModule = {
 };
 
 PyMODINIT_FUNC
-PyInit_pyadb(void){
+PyInit_pyadb(void) {
     return PyModule_Create(&ADBModule);
 }
 

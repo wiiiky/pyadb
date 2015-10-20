@@ -59,8 +59,7 @@ static const char *adb_device_banner = "device";
 static const char *root_seclabel = NULL;
 #endif
 
-void fatal(const char *fmt, ...)
-{
+void fatal(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     fprintf(stderr, "error: ");
@@ -70,8 +69,7 @@ void fatal(const char *fmt, ...)
     exit(-1);
 }
 
-void fatal_errno(const char *fmt, ...)
-{
+void fatal_errno(const char *fmt, ...) {
     va_list ap;
     va_start(ap, fmt);
     fprintf(stderr, "error: %s: ", strerror(errno));
@@ -88,8 +86,7 @@ int   adb_trace_mask;
  * mask from it. note that '1' and 'all' are special cases to
  * enable all tracing
  */
-void  adb_trace_init(void)
-{
+void  adb_trace_init(void) {
     const char*  p = getenv("ADB_TRACE");
     const char*  q;
 
@@ -114,7 +111,7 @@ void  adb_trace_init(void)
     };
 
     if (p == NULL)
-            return;
+        return;
 
     /* use a comma/column/semi-colum/space separated list */
     while (*p) {
@@ -126,12 +123,10 @@ void  adb_trace_init(void)
         }
         len = q - p;
 
-        for (tagn = 0; tags[tagn].tag != NULL; tagn++)
-        {
+        for (tagn = 0; tags[tagn].tag != NULL; tagn++) {
             int  taglen = strlen(tags[tagn].tag);
 
-            if (len == taglen && !memcmp(tags[tagn].tag, p, len) )
-            {
+            if (len == taglen && !memcmp(tags[tagn].tag, p, len) ) {
                 int  flag = tags[tagn].flag;
                 if (flag == 0) {
                     adb_trace_mask = ~0;
@@ -173,8 +168,7 @@ void  adb_trace_init(void)
 int   adb_debug_qemu = -1;
 
 /* Initializes connection with the adb-debug qemud service in the emulator. */
-static int adb_qemu_trace_init(void)
-{
+static int adb_qemu_trace_init(void) {
     char con_name[32];
 
     if (adb_debug_qemu >= 0) {
@@ -187,8 +181,7 @@ static int adb_qemu_trace_init(void)
     return (adb_debug_qemu >= 0) ? 0 : -1;
 }
 
-void adb_qemu_trace(const char* fmt, ...)
-{
+void adb_qemu_trace(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
     char msg[1024];
@@ -200,27 +193,23 @@ void adb_qemu_trace(const char* fmt, ...)
 }
 #endif  /* !ADB_HOST */
 
-apacket *get_apacket(void)
-{
+apacket *get_apacket(void) {
     apacket *p = malloc(sizeof(apacket));
     if(p == 0) fatal("failed to allocate an apacket");
     memset(p, 0, sizeof(apacket) - MAX_PAYLOAD);
     return p;
 }
 
-void put_apacket(apacket *p)
-{
+void put_apacket(apacket *p) {
     free(p);
 }
 
-void handle_online(atransport *t)
-{
+void handle_online(atransport *t) {
     D("adb: online\n");
     t->online = 1;
 }
 
-void handle_offline(atransport *t)
-{
+void handle_offline(atransport *t) {
     D("adb: offline\n");
     //Close the associated usb
     t->online = 0;
@@ -229,21 +218,36 @@ void handle_offline(atransport *t)
 
 #if DEBUG_PACKETS
 #define DUMPMAX 32
-void print_packet(const char *label, apacket *p)
-{
+void print_packet(const char *label, apacket *p) {
     char *tag;
     char *x;
     unsigned count;
 
-    switch(p->msg.command){
-    case A_SYNC: tag = "SYNC"; break;
-    case A_CNXN: tag = "CNXN" ; break;
-    case A_OPEN: tag = "OPEN"; break;
-    case A_OKAY: tag = "OKAY"; break;
-    case A_CLSE: tag = "CLSE"; break;
-    case A_WRTE: tag = "WRTE"; break;
-    case A_AUTH: tag = "AUTH"; break;
-    default: tag = "????"; break;
+    switch(p->msg.command) {
+    case A_SYNC:
+        tag = "SYNC";
+        break;
+    case A_CNXN:
+        tag = "CNXN" ;
+        break;
+    case A_OPEN:
+        tag = "OPEN";
+        break;
+    case A_OKAY:
+        tag = "OKAY";
+        break;
+    case A_CLSE:
+        tag = "CLSE";
+        break;
+    case A_WRTE:
+        tag = "WRTE";
+        break;
+    case A_AUTH:
+        tag = "AUTH";
+        break;
+    default:
+        tag = "????";
+        break;
     }
 
     fprintf(stderr, "%s: %s %08x %08x %04x \"",
@@ -256,7 +260,7 @@ void print_packet(const char *label, apacket *p)
     } else {
         tag = "\"\n";
     }
-    while(count-- > 0){
+    while(count-- > 0) {
         if((*x >= ' ') && (*x < 127)) {
             fputc(*x, stderr);
         } else {
@@ -268,8 +272,7 @@ void print_packet(const char *label, apacket *p)
 }
 #endif
 
-static void send_ready(unsigned local, unsigned remote, atransport *t)
-{
+static void send_ready(unsigned local, unsigned remote, atransport *t) {
     D("Calling send_ready \n");
     apacket *p = get_apacket();
     p->msg.command = A_OKAY;
@@ -278,8 +281,7 @@ static void send_ready(unsigned local, unsigned remote, atransport *t)
     send_packet(p, t);
 }
 
-static void send_close(unsigned local, unsigned remote, atransport *t)
-{
+static void send_close(unsigned local, unsigned remote, atransport *t) {
     D("Calling send_close \n");
     apacket *p = get_apacket();
     p->msg.command = A_CLSE;
@@ -288,8 +290,7 @@ static void send_close(unsigned local, unsigned remote, atransport *t)
     send_packet(p, t);
 }
 
-static size_t fill_connect_data(char *buf, size_t bufsize)
-{
+static size_t fill_connect_data(char *buf, size_t bufsize) {
 #if ADB_HOST
     return snprintf(buf, bufsize, "host::") + 1;
 #else
@@ -338,8 +339,7 @@ static void send_msg_with_okay(int fd, const char* msg, size_t msglen) {
     writex(fd, msg, msglen);
 }
 
-static void send_connect(atransport *t)
-{
+static void send_connect(atransport *t) {
     D("Calling send_connect \n");
     apacket *cp = get_apacket();
     cp->msg.command = A_CNXN;
@@ -350,8 +350,7 @@ static void send_connect(atransport *t)
     send_packet(cp, t);
 }
 
-void send_auth_request(atransport *t)
-{
+void send_auth_request(atransport *t) {
     D("Calling send_auth_request\n");
     apacket *p;
     int ret;
@@ -370,8 +369,7 @@ void send_auth_request(atransport *t)
     send_packet(p, t);
 }
 
-static void send_auth_response(uint8_t *token, size_t token_size, atransport *t)
-{
+static void send_auth_response(uint8_t *token, size_t token_size, atransport *t) {
     D("Calling send_auth_response\n");
     apacket *p = get_apacket();
     int ret;
@@ -389,8 +387,7 @@ static void send_auth_response(uint8_t *token, size_t token_size, atransport *t)
     send_packet(p, t);
 }
 
-static void send_auth_publickey(atransport *t)
-{
+static void send_auth_publickey(atransport *t) {
     D("Calling send_auth_publickey\n");
     apacket *p = get_apacket();
     int ret;
@@ -408,14 +405,12 @@ static void send_auth_publickey(atransport *t)
     send_packet(p, t);
 }
 
-void adb_auth_verified(atransport *t)
-{
+void adb_auth_verified(atransport *t) {
     handle_online(t);
     send_connect(t);
 }
 
-static char *connection_state_name(atransport *t)
-{
+static char *connection_state_name(atransport *t) {
     if (t == NULL) {
         return "unknown";
     }
@@ -442,8 +437,7 @@ static char *connection_state_name(atransport *t)
  * pointer to a char pointer.  It is assumed that if *dst is non-NULL, it
  * was malloc'ed and needs to freed.  *dst will be set to a dup of src.
  */
-static void qual_overwrite(char **dst, const char *src)
-{
+static void qual_overwrite(char **dst, const char *src) {
     if (!dst)
         return;
 
@@ -456,8 +450,7 @@ static void qual_overwrite(char **dst, const char *src)
     *dst = strdup(src);
 }
 
-void parse_banner(char *banner, atransport *t)
-{
+void parse_banner(char *banner, atransport *t) {
     static const char *prop_seps = ";";
     static const char key_val_sep = '=';
     char *cp;
@@ -490,7 +483,7 @@ void parse_banner(char *banner, atransport *t)
         }
     }
 
-    if(!strcmp(type, "bootloader")){
+    if(!strcmp(type, "bootloader")) {
         D("setting connection_state to CS_BOOTLOADER\n");
         t->connection_state = CS_BOOTLOADER;
         update_transports();
@@ -521,19 +514,18 @@ void parse_banner(char *banner, atransport *t)
     t->connection_state = CS_HOST;
 }
 
-void handle_packet(apacket *p, atransport *t)
-{
+void handle_packet(apacket *p, atransport *t) {
     asocket *s;
 
     D("handle_packet() %c%c%c%c\n", ((char*) (&(p->msg.command)))[0],
-            ((char*) (&(p->msg.command)))[1],
-            ((char*) (&(p->msg.command)))[2],
-            ((char*) (&(p->msg.command)))[3]);
+      ((char*) (&(p->msg.command)))[1],
+      ((char*) (&(p->msg.command)))[2],
+      ((char*) (&(p->msg.command)))[3]);
     print_packet("recv", p);
 
-    switch(p->msg.command){
+    switch(p->msg.command) {
     case A_SYNC:
-        if(p->msg.arg0){
+        if(p->msg.arg0) {
             send_packet(p, t);
             if(HOST) send_connect(t);
         } else {
@@ -544,7 +536,7 @@ void handle_packet(apacket *p, atransport *t)
         return;
 
     case A_CNXN: /* CONNECT(version, maxdata, "system-id-string") */
-            /* XXX verify version, etc */
+        /* XXX verify version, etc */
         if(t->connection_state != CS_OFFLINE) {
             t->connection_state = CS_OFFLINE;
             handle_offline(t);
@@ -669,8 +661,7 @@ alistener listener_list = {
     .prev = &listener_list,
 };
 
-static void ss_listener_event_func(int _fd, unsigned ev, void *_l)
-{
+static void ss_listener_event_func(int _fd, unsigned ev, void *_l) {
     asocket *s;
 
     if(ev & FDE_READ) {
@@ -694,8 +685,7 @@ static void ss_listener_event_func(int _fd, unsigned ev, void *_l)
     }
 }
 
-static void listener_event_func(int _fd, unsigned ev, void *_l)
-{
+static void listener_event_func(int _fd, unsigned ev, void *_l) {
     alistener *l = _l;
     asocket *s;
 
@@ -719,8 +709,7 @@ static void listener_event_func(int _fd, unsigned ev, void *_l)
     }
 }
 
-static void  free_listener(alistener*  l)
-{
+static void  free_listener(alistener*  l) {
     if (l->next) {
         l->next->prev = l->prev;
         l->prev->next = l->next;
@@ -742,18 +731,16 @@ static void  free_listener(alistener*  l)
     free(l);
 }
 
-static void listener_disconnect(void*  _l, atransport*  t)
-{
+static void listener_disconnect(void*  _l, atransport*  t) {
     alistener*  l = _l;
 
     free_listener(l);
 }
 
-int local_name_to_fd(const char *name)
-{
+int local_name_to_fd(const char *name) {
     int port;
 
-    if(!strncmp("tcp:", name, 4)){
+    if(!strncmp("tcp:", name, 4)) {
         int  ret;
         port = atoi(name + 4);
 
@@ -769,13 +756,13 @@ int local_name_to_fd(const char *name)
     // It's non-sensical to support the "reserved" space on the adb host side
     if(!strncmp(name, "local:", 6)) {
         return socket_local_server(name + 6,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+                                   ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
     } else if(!strncmp(name, "localabstract:", 14)) {
         return socket_local_server(name + 14,
-                ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
+                                   ANDROID_SOCKET_NAMESPACE_ABSTRACT, SOCK_STREAM);
     } else if(!strncmp(name, "localfilesystem:", 16)) {
         return socket_local_server(name + 16,
-                ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
+                                   ANDROID_SOCKET_NAMESPACE_FILESYSTEM, SOCK_STREAM);
     }
 
 #endif
@@ -798,7 +785,7 @@ static int format_listener(alistener* l, char* buffer, size_t buffer_len) {
 
     if (buffer != NULL) {
         snprintf(buffer, buffer_len, "%s %s %s\n",
-                l->transport->serial, l->local_name, l->connect_to);
+                 l->transport->serial, l->local_name, l->connect_to);
     }
     // NOTE: snprintf() on Windows returns -1 in case of truncation, so
     // return the computed line length instead.
@@ -809,29 +796,27 @@ static int format_listener(alistener* l, char* buffer, size_t buffer_len) {
 // user-provided buffer. Appends a trailing zero, even in case of
 // trunctaion, but return the full size in bytes.
 // If |buffer| is NULL, does not write but returns required size.
-static int format_listeners(char* buf, size_t buflen)
-{
+static int format_listeners(char* buf, size_t buflen) {
     alistener* l;
     int result = 0;
     for (l = listener_list.next; l != &listener_list; l = l->next) {
         // Ignore special listeners like those for *smartsocket*
         if (l->connect_to[0] == '*')
-          continue;
+            continue;
         int len = format_listener(l, buf, buflen);
         // Ensure there is space for the trailing zero.
         result += len;
         if (buf != NULL) {
-          buf += len;
-          buflen -= len;
-          if (buflen <= 0)
-              break;
+            buf += len;
+            buflen -= len;
+            if (buflen <= 0)
+                break;
         }
     }
     return result;
 }
 
-static int remove_listener(const char *local_name, atransport* transport)
-{
+static int remove_listener(const char *local_name, atransport* transport) {
     alistener *l;
 
     for (l = listener_list.next; l != &listener_list; l = l->next) {
@@ -843,8 +828,7 @@ static int remove_listener(const char *local_name, atransport* transport)
     return -1;
 }
 
-static void remove_all_listeners(void)
-{
+static void remove_all_listeners(void) {
     alistener *l, *l_next;
     for (l = listener_list.next; l != &listener_list; l = l_next) {
         l_next = l->next;
@@ -857,31 +841,30 @@ static void remove_all_listeners(void)
 
 // error/status codes for install_listener.
 typedef enum {
-  INSTALL_STATUS_OK = 0,
-  INSTALL_STATUS_INTERNAL_ERROR = -1,
-  INSTALL_STATUS_CANNOT_BIND = -2,
-  INSTALL_STATUS_CANNOT_REBIND = -3,
+    INSTALL_STATUS_OK = 0,
+    INSTALL_STATUS_INTERNAL_ERROR = -1,
+    INSTALL_STATUS_CANNOT_BIND = -2,
+    INSTALL_STATUS_CANNOT_REBIND = -3,
 } install_status_t;
 
 static install_status_t install_listener(const char *local_name,
-                                         const char *connect_to,
-                                         atransport* transport,
-                                         int no_rebind)
-{
+        const char *connect_to,
+        atransport* transport,
+        int no_rebind) {
     alistener *l;
 
     //printf("install_listener('%s','%s')\n", local_name, connect_to);
 
-    for(l = listener_list.next; l != &listener_list; l = l->next){
+    for(l = listener_list.next; l != &listener_list; l = l->next) {
         if(strcmp(local_name, l->local_name) == 0) {
             char *cto;
 
-                /* can't repurpose a smartsocket */
+            /* can't repurpose a smartsocket */
             if(l->connect_to[0] == '*') {
                 return INSTALL_STATUS_INTERNAL_ERROR;
             }
 
-                /* can't repurpose a listener if 'no_rebind' is true */
+            /* can't repurpose a listener if 'no_rebind' is true */
             if (no_rebind) {
                 return INSTALL_STATUS_CANNOT_REBIND;
             }
@@ -944,20 +927,17 @@ nomem:
 }
 
 #ifdef HAVE_WIN32_PROC
-static BOOL WINAPI ctrlc_handler(DWORD type)
-{
+static BOOL WINAPI ctrlc_handler(DWORD type) {
     exit(STATUS_CONTROL_C_EXIT);
     return TRUE;
 }
 #endif
 
-static void adb_cleanup(void)
-{
+static void adb_cleanup(void) {
     usb_cleanup();
 }
 
-void start_logging(void)
-{
+void start_logging(void) {
 #ifdef HAVE_WIN32_PROC
     char    temp[ MAX_PATH ];
     FILE*   fnul;
@@ -999,8 +979,7 @@ void start_logging(void)
 }
 
 #if !ADB_HOST
-void start_device_log(void)
-{
+void start_device_log(void) {
     int fd;
     char    path[PATH_MAX];
     struct tm now;
@@ -1018,8 +997,8 @@ void start_device_log(void)
     time(&t);
     localtime_r(&t, &now);
     strftime(path, sizeof(path),
-                "/data/adb/adb-%Y-%m-%d-%H-%M-%S.txt",
-                &now);
+             "/data/adb/adb-%Y-%m-%d-%H-%M-%S.txt",
+             &now);
     fd = unix_open(path, O_WRONLY | O_CREAT | O_TRUNC, 0640);
     if (fd < 0)
         return;
@@ -1041,31 +1020,29 @@ void start_device_log(void)
 #ifdef WORKAROUND_BUG6558362
 #include <sched.h>
 #define AFFINITY_ENVVAR "ADB_CPU_AFFINITY_BUG6558362"
-void adb_set_affinity(void)
-{
-   cpu_set_t cpu_set;
-   const char* cpunum_str = getenv(AFFINITY_ENVVAR);
-   char* strtol_res;
-   int cpu_num;
+void adb_set_affinity(void) {
+    cpu_set_t cpu_set;
+    const char* cpunum_str = getenv(AFFINITY_ENVVAR);
+    char* strtol_res;
+    int cpu_num;
 
-   if (!cpunum_str || !*cpunum_str)
-       return;
-   cpu_num = strtol(cpunum_str, &strtol_res, 0);
-   if (*strtol_res != '\0')
-     fatal("bad number (%s) in env var %s. Expecting 0..n.\n", cpunum_str, AFFINITY_ENVVAR);
+    if (!cpunum_str || !*cpunum_str)
+        return;
+    cpu_num = strtol(cpunum_str, &strtol_res, 0);
+    if (*strtol_res != '\0')
+        fatal("bad number (%s) in env var %s. Expecting 0..n.\n", cpunum_str, AFFINITY_ENVVAR);
 
-   sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
-   D("orig cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
-   CPU_ZERO(&cpu_set);
-   CPU_SET(cpu_num, &cpu_set);
-   sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
-   sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
-   D("new cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
+    sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
+    D("orig cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
+    CPU_ZERO(&cpu_set);
+    CPU_SET(cpu_num, &cpu_set);
+    sched_setaffinity(0, sizeof(cpu_set), &cpu_set);
+    sched_getaffinity(0, sizeof(cpu_set), &cpu_set);
+    D("new cpu_set[0]=0x%08lx\n", cpu_set.__bits[0]);
 }
 #endif
 
-int launch_server(int server_port)
-{
+int launch_server(int server_port) {
 #ifdef HAVE_WIN32_PROC
     /* we need to start the server in the background                    */
     /* we create a PIPE that will be used to wait for the server's "OK" */
@@ -1125,18 +1102,18 @@ int launch_server(int server_port)
     GetModuleFileName( NULL, program_path, sizeof(program_path) );
 
     ret = CreateProcess(
-            program_path,                              /* program path  */
-            "adb fork-server server",
-                                    /* the fork-server argument will set the
-                                       debug = 2 in the child           */
-            NULL,                   /* process handle is not inheritable */
-            NULL,                    /* thread handle is not inheritable */
-            TRUE,                          /* yes, inherit some handles */
-            DETACHED_PROCESS, /* the new process doesn't have a console */
-            NULL,                     /* use parent's environment block */
-            NULL,                    /* use parent's starting directory */
-            &startup,                 /* startup info, i.e. std handles */
-            &pinfo );
+              program_path,                              /* program path  */
+              "adb fork-server server",
+              /* the fork-server argument will set the
+                 debug = 2 in the child           */
+              NULL,                   /* process handle is not inheritable */
+              NULL,                    /* thread handle is not inheritable */
+              TRUE,                          /* yes, inherit some handles */
+              DETACHED_PROCESS, /* the new process doesn't have a console */
+              NULL,                     /* use parent's environment block */
+              NULL,                    /* use parent's starting directory */
+              &startup,                 /* startup info, i.e. std handles */
+              &pinfo );
 
     CloseHandle( pipe_write );
 
@@ -1199,7 +1176,9 @@ int launch_server(int server_port)
 
         char  temp[3];
 
-        temp[0] = 'A'; temp[1] = 'B'; temp[2] = 'C';
+        temp[0] = 'A';
+        temp[1] = 'B';
+        temp[2] = 'C';
         // wait for the "OK\n" message
         adb_close(fd[1]);
         int ret = adb_read(fd[0], temp, 3);
@@ -1228,9 +1207,8 @@ int launch_server(int server_port)
  * target_size is the capacity of the target string.
  * server_port is the port number to use for the local name.
  */
-void build_local_name(char* target_str, size_t target_size, int server_port)
-{
-  snprintf(target_str, target_size, "tcp:%d", server_port);
+void build_local_name(char* target_str, size_t target_size, int server_port) {
+    snprintf(target_str, target_size, "tcp:%d", server_port);
 }
 
 #if !ADB_HOST
@@ -1267,9 +1245,9 @@ static int should_drop_privileges() {
     int secure = 0;
     char value[PROPERTY_VALUE_MAX];
 
-   /* run adbd in secure mode if ro.secure is set and
-    ** we are not in the emulator
-    */
+    /* run adbd in secure mode if ro.secure is set and
+     ** we are not in the emulator
+     */
     property_get("ro.kernel.qemu", value, "");
     if (strcmp(value, "1") != 0) {
         property_get("ro.secure", value, "1");
@@ -1293,8 +1271,7 @@ static int should_drop_privileges() {
 }
 #endif /* !ADB_HOST */
 
-int adb_main(int is_daemon, int server_port)
-{
+int adb_main(int is_daemon, int server_port) {
 #if !ADB_HOST
     int port;
     char value[PROPERTY_VALUE_MAX];
@@ -1357,7 +1334,8 @@ int adb_main(int is_daemon, int server_port)
     */
     gid_t groups[] = { AID_ADB, AID_LOG, AID_INPUT, AID_INET, AID_GRAPHICS,
                        AID_NET_BT, AID_NET_BT_ADMIN, AID_SDCARD_R, AID_SDCARD_RW,
-                       AID_NET_BW_STATS };
+                       AID_NET_BW_STATS
+                     };
     if (setgroups(sizeof(groups)/sizeof(groups[0]), groups) != 0) {
         exit(1);
     }
@@ -1418,8 +1396,7 @@ int adb_main(int is_daemon, int server_port)
     D("adb_main(): post init_jdwp()\n");
 #endif
 
-    if (is_daemon)
-    {
+    if (is_daemon) {
         // inform our parent that we are up and running.
 #ifdef HAVE_WIN32_PROC
         DWORD  count;
@@ -1441,8 +1418,7 @@ int adb_main(int is_daemon, int server_port)
 // Try to handle a network forwarding request.
 // This returns 1 on success, 0 on failure, and -1 to indicate this is not
 // a forwarding-related request.
-int handle_forward_request(const char* service, transport_type ttype, char* serial, int reply_fd)
-{
+int handle_forward_request(const char* service, transport_type ttype, char* serial, int reply_fd) {
     if (!strcmp(service, "list-forward")) {
         // Create the list of forward redirections.
         int buffer_size = format_listeners(NULL, 0);
@@ -1473,7 +1449,7 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
     }
 
     if (!strncmp(service, "forward:",8) ||
-        !strncmp(service, "killforward:",12)) {
+            !strncmp(service, "killforward:",12)) {
         char *local, *remote, *err;
         int r;
         atransport *transport;
@@ -1534,13 +1510,13 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
         if (createForward) {
             const char* message;
             switch (r) {
-              case INSTALL_STATUS_CANNOT_BIND:
+            case INSTALL_STATUS_CANNOT_BIND:
                 message = "cannot bind to socket";
                 break;
-              case INSTALL_STATUS_CANNOT_REBIND:
+            case INSTALL_STATUS_CANNOT_REBIND:
                 message = "cannot rebind existing socket";
                 break;
-              default:
+            default:
                 message = "internal error";
             }
             sendfailmsg(reply_fd, message);
@@ -1552,8 +1528,7 @@ int handle_forward_request(const char* service, transport_type ttype, char* seri
     return 0;
 }
 
-int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s)
-{
+int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s) {
     atransport *transport = NULL;
 
     if(!strcmp(service, "kill")) {
@@ -1647,8 +1622,8 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
 
     if(!strncmp(service,"get-serialno",strlen("get-serialno"))) {
         char *out = "unknown";
-         transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
-       if (transport && transport->serial) {
+        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        if (transport && transport->serial) {
             out = transport->serial;
         }
         send_msg_with_okay(reply_fd, out, strlen(out));
@@ -1656,8 +1631,8 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
     }
     if(!strncmp(service,"get-devpath",strlen("get-devpath"))) {
         char *out = "unknown";
-         transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
-       if (transport && transport->devpath) {
+        transport = acquire_one_transport(CS_ANY, ttype, serial, NULL);
+        if (transport && transport->devpath) {
             out = transport->devpath;
         }
         send_msg_with_okay(reply_fd, out, strlen(out));
@@ -1681,7 +1656,7 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
 
     int ret = handle_forward_request(service, ttype, serial, reply_fd);
     if (ret >= 0)
-      return ret - 1;
+        return ret - 1;
     return -1;
 }
 

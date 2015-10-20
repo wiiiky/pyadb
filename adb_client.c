@@ -19,24 +19,20 @@ static const char* __adb_serial = NULL;
 static int __adb_server_port = DEFAULT_ADB_PORT;
 static const char* __adb_server_name = NULL;
 
-void adb_set_transport(transport_type type, const char* serial)
-{
+void adb_set_transport(transport_type type, const char* serial) {
     __adb_transport = type;
     __adb_serial = serial;
 }
 
-void adb_set_tcp_specifics(int server_port)
-{
+void adb_set_tcp_specifics(int server_port) {
     __adb_server_port = server_port;
 }
 
-void adb_set_tcp_name(const char* hostname)
-{
+void adb_set_tcp_name(const char* hostname) {
     __adb_server_name = hostname;
 }
 
-int  adb_get_emulator_console_port(void)
-{
+int  adb_get_emulator_console_port(void) {
     const char*   serial = __adb_serial;
     int           port;
 
@@ -71,8 +67,7 @@ int  adb_get_emulator_console_port(void)
 
         if (serial == NULL)
             return -1;  /* no emulator found */
-    }
-    else {
+    } else {
         if (memcmp(serial, LOCAL_CLIENT_PREFIX, sizeof(LOCAL_CLIENT_PREFIX)-1) != 0)
             return -1;  /* not an emulator */
     }
@@ -84,13 +79,11 @@ int  adb_get_emulator_console_port(void)
 
 static char __adb_error[256] = { 0 };
 
-const char *adb_error(void)
-{
+const char *adb_error(void) {
     return __adb_error;
 }
 
-static int switch_socket_transport(int fd)
-{
+static int switch_socket_transport(int fd) {
     char service[64];
     char tmp[5];
     int len;
@@ -100,20 +93,20 @@ static int switch_socket_transport(int fd)
     else {
         char* transport_type = "???";
 
-         switch (__adb_transport) {
-            case kTransportUsb:
-                transport_type = "transport-usb";
-                break;
-            case kTransportLocal:
-                transport_type = "transport-local";
-                break;
-            case kTransportAny:
-                transport_type = "transport-any";
-                break;
-            case kTransportHost:
-                // no switch necessary
-                return 0;
-                break;
+        switch (__adb_transport) {
+        case kTransportUsb:
+            transport_type = "transport-usb";
+            break;
+        case kTransportLocal:
+            transport_type = "transport-local";
+            break;
+        case kTransportAny:
+            transport_type = "transport-any";
+            break;
+        case kTransportHost:
+            // no switch necessary
+            return 0;
+            break;
         }
 
         snprintf(service, sizeof service, "host:%s", transport_type);
@@ -137,8 +130,7 @@ static int switch_socket_transport(int fd)
     return 0;
 }
 
-int adb_status(int fd)
-{
+int adb_status(int fd) {
     unsigned char buf[5];
     unsigned len;
 
@@ -173,8 +165,7 @@ int adb_status(int fd)
     return -1;
 }
 
-int _adb_connect(const char *service)
-{
+int _adb_connect(const char *service) {
     char tmp[5];
     int len;
     int fd;
@@ -216,8 +207,7 @@ int _adb_connect(const char *service)
     return fd;
 }
 
-int adb_connect(const char *service)
-{
+int adb_connect(const char *service) {
     // first query the adb server's version
     int fd = _adb_connect("host:version");
 
@@ -228,7 +218,7 @@ int adb_connect(const char *service)
     } else if(fd == -2) {
         fprintf(stdout,"* daemon not running. starting it now on port %d *\n",
                 __adb_server_port);
-    start_server:
+start_server:
         if(launch_server(__adb_server_port)) {
             fprintf(stderr,"* failed to start daemon *\n");
             return -1;
@@ -292,8 +282,7 @@ error:
 }
 
 
-int adb_command(const char *service)
-{
+int adb_command(const char *service) {
     int fd = adb_connect(service);
     if(fd < 0) {
         fprintf(stderr, "error: %s\n", adb_error());
@@ -308,8 +297,7 @@ int adb_command(const char *service)
     return 0;
 }
 
-char *adb_query(const char *service)
-{
+char *adb_query(const char *service) {
     char buf[5];
     unsigned n;
     char *tmp;

@@ -18,8 +18,7 @@ extern void fatal(const char *fmt, ...);
 /**************************************************************************/
 /**************************************************************************/
 
-void *load_file(const char *fn, unsigned *_sz)
-{
+void *load_file(const char *fn, unsigned *_sz) {
     HANDLE    file;
     char     *data;
     DWORD     file_size;
@@ -47,8 +46,7 @@ void *load_file(const char *fn, unsigned *_sz)
             DWORD  out_bytes;
 
             if ( !ReadFile( file, data, file_size, &out_bytes, NULL ) ||
-                 out_bytes != file_size )
-            {
+                    out_bytes != file_size ) {
                 D("load_file: could not read %ld bytes from '%s'\n", file_size, fn);
                 free(data);
                 data      = NULL;
@@ -76,8 +74,7 @@ typedef struct FHRec_*          FH;
 
 typedef struct EventHookRec_*  EventHook;
 
-typedef struct FHClassRec_
-{
+typedef struct FHClassRec_ {
     void (*_fh_init) ( FH  f );
     int  (*_fh_close)( FH  f );
     int  (*_fh_lseek)( FH  f, int  pos, int  origin );
@@ -90,8 +87,7 @@ typedef struct FHClassRec_
 /* used to emulate unix-domain socket pairs */
 typedef struct SocketPairRec_*  SocketPair;
 
-typedef struct FHRec_
-{
+typedef struct FHRec_ {
     FHClass    clazz;
     int        used;
     int        eof;
@@ -121,8 +117,7 @@ static  FHRec        _win32_fhs[ WIN32_MAX_FHS ];
 static  int          _win32_fh_count;
 
 static FH
-_fh_from_int( int   fd )
-{
+_fh_from_int( int   fd ) {
     FH  f;
 
     fd -= WIN32_FH_BASE;
@@ -146,8 +141,7 @@ _fh_from_int( int   fd )
 
 
 static int
-_fh_to_int( FH  f )
-{
+_fh_to_int( FH  f ) {
     if (f && f->used && f >= _win32_fhs && f < _win32_fhs + WIN32_MAX_FHS)
         return (int)(f - _win32_fhs) + WIN32_FH_BASE;
 
@@ -155,8 +149,7 @@ _fh_to_int( FH  f )
 }
 
 static FH
-_fh_alloc( FHClass  clazz )
-{
+_fh_alloc( FHClass  clazz ) {
     int  nn;
     FH   f = NULL;
 
@@ -187,8 +180,7 @@ Exit:
 
 
 static int
-_fh_close( FH   f )
-{
+_fh_close( FH   f ) {
     if ( f->used ) {
         f->clazz->_fh_close( f );
         f->used = 0;
@@ -211,22 +203,19 @@ static const FHClassRec   _fh_socket_class;
 /**************************************************************************/
 
 static void
-_fh_file_init( FH  f )
-{
+_fh_file_init( FH  f ) {
     f->fh_handle = INVALID_HANDLE_VALUE;
 }
 
 static int
-_fh_file_close( FH  f )
-{
+_fh_file_close( FH  f ) {
     CloseHandle( f->fh_handle );
     f->fh_handle = INVALID_HANDLE_VALUE;
     return 0;
 }
 
 static int
-_fh_file_read( FH  f,  void*  buf, int   len )
-{
+_fh_file_read( FH  f,  void*  buf, int   len ) {
     DWORD  read_bytes;
 
     if ( !ReadFile( f->fh_handle, buf, (DWORD)len, &read_bytes, NULL ) ) {
@@ -240,8 +229,7 @@ _fh_file_read( FH  f,  void*  buf, int   len )
 }
 
 static int
-_fh_file_write( FH  f,  const void*  buf, int   len )
-{
+_fh_file_write( FH  f,  const void*  buf, int   len ) {
     DWORD  wrote_bytes;
 
     if ( !WriteFile( f->fh_handle, buf, (DWORD)len, &wrote_bytes, NULL ) ) {
@@ -255,19 +243,23 @@ _fh_file_write( FH  f,  const void*  buf, int   len )
 }
 
 static int
-_fh_file_lseek( FH  f, int  pos, int  origin )
-{
+_fh_file_lseek( FH  f, int  pos, int  origin ) {
     DWORD  method;
     DWORD  result;
 
-    switch (origin)
-    {
-        case SEEK_SET:  method = FILE_BEGIN; break;
-        case SEEK_CUR:  method = FILE_CURRENT; break;
-        case SEEK_END:  method = FILE_END; break;
-        default:
-            errno = EINVAL;
-            return -1;
+    switch (origin) {
+    case SEEK_SET:
+        method = FILE_BEGIN;
+        break;
+    case SEEK_CUR:
+        method = FILE_CURRENT;
+        break;
+    case SEEK_END:
+        method = FILE_END;
+        break;
+    default:
+        errno = EINVAL;
+        return -1;
     }
 
     result = SetFilePointer( f->fh_handle, pos, NULL, method );
@@ -282,8 +274,7 @@ _fh_file_lseek( FH  f, int  pos, int  origin )
 
 static void  _fh_file_hook( FH  f, int  event, EventHook  eventhook );  /* forward */
 
-static const FHClassRec  _fh_file_class =
-{
+static const FHClassRec  _fh_file_class = {
     _fh_file_init,
     _fh_file_close,
     _fh_file_lseek,
@@ -300,27 +291,26 @@ static const FHClassRec  _fh_file_class =
 /**************************************************************************/
 /**************************************************************************/
 
-int  adb_open(const char*  path, int  options)
-{
+int  adb_open(const char*  path, int  options) {
     FH  f;
 
     DWORD  desiredAccess       = 0;
     DWORD  shareMode           = FILE_SHARE_READ | FILE_SHARE_WRITE;
 
     switch (options) {
-        case O_RDONLY:
-            desiredAccess = GENERIC_READ;
-            break;
-        case O_WRONLY:
-            desiredAccess = GENERIC_WRITE;
-            break;
-        case O_RDWR:
-            desiredAccess = GENERIC_READ | GENERIC_WRITE;
-            break;
-        default:
-            D("adb_open: invalid options (0x%0x)\n", options);
-            errno = EINVAL;
-            return -1;
+    case O_RDONLY:
+        desiredAccess = GENERIC_READ;
+        break;
+    case O_WRONLY:
+        desiredAccess = GENERIC_WRITE;
+        break;
+    case O_RDWR:
+        desiredAccess = GENERIC_READ | GENERIC_WRITE;
+        break;
+    default:
+        D("adb_open: invalid options (0x%0x)\n", options);
+        errno = EINVAL;
+        return -1;
     }
 
     f = _fh_alloc( &_fh_file_class );
@@ -336,20 +326,20 @@ int  adb_open(const char*  path, int  options)
         _fh_close(f);
         D( "adb_open: could not open '%s':", path );
         switch (GetLastError()) {
-            case ERROR_FILE_NOT_FOUND:
-                D( "file not found\n" );
-                errno = ENOENT;
-                return -1;
+        case ERROR_FILE_NOT_FOUND:
+            D( "file not found\n" );
+            errno = ENOENT;
+            return -1;
 
-            case ERROR_PATH_NOT_FOUND:
-                D( "path not found\n" );
-                errno = ENOTDIR;
-                return -1;
+        case ERROR_PATH_NOT_FOUND:
+            D( "path not found\n" );
+            errno = ENOTDIR;
+            return -1;
 
-            default:
-                D( "unknown error\n" );
-                errno = ENOENT;
-                return -1;
+        default:
+            D( "unknown error\n" );
+            errno = ENOENT;
+            return -1;
         }
     }
 
@@ -359,8 +349,7 @@ int  adb_open(const char*  path, int  options)
 }
 
 /* ignore mode on Win32 */
-int  adb_creat(const char*  path, int  mode)
-{
+int  adb_creat(const char*  path, int  mode) {
     FH  f;
 
     f = _fh_alloc( &_fh_file_class );
@@ -377,20 +366,20 @@ int  adb_creat(const char*  path, int  mode)
         _fh_close(f);
         D( "adb_creat: could not open '%s':", path );
         switch (GetLastError()) {
-            case ERROR_FILE_NOT_FOUND:
-                D( "file not found\n" );
-                errno = ENOENT;
-                return -1;
+        case ERROR_FILE_NOT_FOUND:
+            D( "file not found\n" );
+            errno = ENOENT;
+            return -1;
 
-            case ERROR_PATH_NOT_FOUND:
-                D( "path not found\n" );
-                errno = ENOTDIR;
-                return -1;
+        case ERROR_PATH_NOT_FOUND:
+            D( "path not found\n" );
+            errno = ENOTDIR;
+            return -1;
 
-            default:
-                D( "unknown error\n" );
-                errno = ENOENT;
-                return -1;
+        default:
+            D( "unknown error\n" );
+            errno = ENOENT;
+            return -1;
         }
     }
     snprintf( f->name, sizeof(f->name), "%d(%s)", _fh_to_int(f), path );
@@ -399,8 +388,7 @@ int  adb_creat(const char*  path, int  mode)
 }
 
 
-int  adb_read(int  fd, void* buf, int len)
-{
+int  adb_read(int  fd, void* buf, int len) {
     FH     f = _fh_from_int(fd);
 
     if (f == NULL) {
@@ -411,8 +399,7 @@ int  adb_read(int  fd, void* buf, int len)
 }
 
 
-int  adb_write(int  fd, const void*  buf, int  len)
-{
+int  adb_write(int  fd, const void*  buf, int  len) {
     FH     f = _fh_from_int(fd);
 
     if (f == NULL) {
@@ -423,8 +410,7 @@ int  adb_write(int  fd, const void*  buf, int  len)
 }
 
 
-int  adb_lseek(int  fd, int  pos, int  where)
-{
+int  adb_lseek(int  fd, int  pos, int  where) {
     FH     f = _fh_from_int(fd);
 
     if (!f) {
@@ -435,8 +421,7 @@ int  adb_lseek(int  fd, int  pos, int  where)
 }
 
 
-int  adb_shutdown(int  fd)
-{
+int  adb_shutdown(int  fd) {
     FH   f = _fh_from_int(fd);
 
     if (!f) {
@@ -449,8 +434,7 @@ int  adb_shutdown(int  fd)
 }
 
 
-int  adb_close(int  fd)
-{
+int  adb_close(int  fd) {
     FH   f = _fh_from_int(fd);
 
     if (!f) {
@@ -471,12 +455,17 @@ int  adb_close(int  fd)
 /**************************************************************************/
 
 static void
-_socket_set_errno( void )
-{
+_socket_set_errno( void ) {
     switch (WSAGetLastError()) {
-    case 0:              errno = 0; break;
-    case WSAEWOULDBLOCK: errno = EAGAIN; break;
-    case WSAEINTR:       errno = EINTR; break;
+    case 0:
+        errno = 0;
+        break;
+    case WSAEWOULDBLOCK:
+        errno = EAGAIN;
+        break;
+    case WSAEINTR:
+        errno = EINTR;
+        break;
     default:
         D( "_socket_set_errno: unhandled value %d\n", WSAGetLastError() );
         errno = EINVAL;
@@ -484,16 +473,14 @@ _socket_set_errno( void )
 }
 
 static void
-_fh_socket_init( FH  f )
-{
+_fh_socket_init( FH  f ) {
     f->fh_socket = INVALID_SOCKET;
     f->event     = WSACreateEvent();
     f->mask      = 0;
 }
 
 static int
-_fh_socket_close( FH  f )
-{
+_fh_socket_close( FH  f ) {
     /* gently tell any peer that we're closing the socket */
     shutdown( f->fh_socket, SD_BOTH );
     closesocket( f->fh_socket );
@@ -504,15 +491,13 @@ _fh_socket_close( FH  f )
 }
 
 static int
-_fh_socket_lseek( FH  f, int pos, int origin )
-{
+_fh_socket_lseek( FH  f, int pos, int origin ) {
     errno = EPIPE;
     return -1;
 }
 
 static int
-_fh_socket_read( FH  f, void*  buf, int  len )
-{
+_fh_socket_read( FH  f, void*  buf, int  len ) {
     int  result = recv( f->fh_socket, buf, len, 0 );
     if (result == SOCKET_ERROR) {
         _socket_set_errno();
@@ -522,8 +507,7 @@ _fh_socket_read( FH  f, void*  buf, int  len )
 }
 
 static int
-_fh_socket_write( FH  f, const void*  buf, int  len )
-{
+_fh_socket_write( FH  f, const void*  buf, int  len ) {
     int  result = send( f->fh_socket, buf, len, 0 );
     if (result == SOCKET_ERROR) {
         _socket_set_errno();
@@ -534,8 +518,7 @@ _fh_socket_write( FH  f, const void*  buf, int  len )
 
 static void  _fh_socket_hook( FH  f, int  event, EventHook  hook );  /* forward */
 
-static const FHClassRec  _fh_socket_class =
-{
+static const FHClassRec  _fh_socket_class = {
     _fh_socket_init,
     _fh_socket_close,
     _fh_socket_lseek,
@@ -557,14 +540,12 @@ static const FHClassRec  _fh_socket_class =
 static int  _winsock_init;
 
 static void
-_cleanup_winsock( void )
-{
+_cleanup_winsock( void ) {
     WSACleanup();
 }
 
 static void
-_init_winsock( void )
-{
+_init_winsock( void ) {
     if (!_winsock_init) {
         WSADATA  wsaData;
         int      rc = WSAStartup( MAKEWORD(2,2), &wsaData);
@@ -576,8 +557,7 @@ _init_winsock( void )
     }
 }
 
-int socket_loopback_client(int port, int type)
-{
+int socket_loopback_client(int port, int type) {
     FH  f = _fh_alloc( &_fh_socket_class );
     struct sockaddr_in addr;
     SOCKET  s;
@@ -613,8 +593,7 @@ int socket_loopback_client(int port, int type)
 
 #define LISTEN_BACKLOG 4
 
-int socket_loopback_server(int port, int type)
-{
+int socket_loopback_server(int port, int type) {
     FH   f = _fh_alloc( &_fh_socket_class );
     struct sockaddr_in addr;
     SOCKET  s;
@@ -659,8 +638,7 @@ int socket_loopback_server(int port, int type)
 }
 
 
-int socket_network_client(const char *host, int port, int type)
-{
+int socket_network_client(const char *host, int port, int type) {
     FH  f = _fh_alloc( &_fh_socket_class );
     struct hostent *hp;
     struct sockaddr_in addr;
@@ -701,15 +679,13 @@ int socket_network_client(const char *host, int port, int type)
 }
 
 
-int socket_network_client_timeout(const char *host, int port, int type, int timeout)
-{
+int socket_network_client_timeout(const char *host, int port, int type, int timeout) {
     // TODO: implement timeouts for Windows.
     return socket_network_client(host, port, type);
 }
 
 
-int socket_inaddr_any_server(int port, int type)
-{
+int socket_inaddr_any_server(int port, int type) {
     FH  f = _fh_alloc( &_fh_socket_class );
     struct sockaddr_in addr;
     SOCKET  s;
@@ -756,8 +732,7 @@ int socket_inaddr_any_server(int port, int type)
 }
 
 #undef accept
-int  adb_socket_accept(int  serverfd, struct sockaddr*  addr, socklen_t  *addrlen)
-{
+int  adb_socket_accept(int  serverfd, struct sockaddr*  addr, socklen_t  *addrlen) {
     FH   serverfh = _fh_from_int(serverfd);
     FH   fh;
 
@@ -785,8 +760,7 @@ int  adb_socket_accept(int  serverfd, struct sockaddr*  addr, socklen_t  *addrle
 }
 
 
-void  disable_tcp_nagle(int fd)
-{
+void  disable_tcp_nagle(int fd) {
     FH   fh = _fh_from_int(fd);
     int  on = 1;
 
@@ -838,8 +812,7 @@ void  disable_tcp_nagle(int fd)
 #  define  BIPD(x)      D x
 #  define  BIPDUMP   bip_dump_hex
 
-static void  bip_dump_hex( const unsigned char*  ptr, size_t  len )
-{
+static void  bip_dump_hex( const unsigned char*  ptr, size_t  len ) {
     int  nn, len2 = len;
 
     if (len2 > 8) len2 = 8;
@@ -863,8 +836,7 @@ static void  bip_dump_hex( const unsigned char*  ptr, size_t  len )
 #  define  BIPDUMP(p,l)   BIPD(p)
 #endif
 
-typedef struct BipBufferRec_
-{
+typedef struct BipBufferRec_ {
     int                a_start;
     int                a_end;
     int                b_end;
@@ -881,8 +853,7 @@ typedef struct BipBufferRec_
 } BipBufferRec, *BipBuffer;
 
 static void
-bip_buffer_init( BipBuffer  buffer )
-{
+bip_buffer_init( BipBuffer  buffer ) {
     D( "bit_buffer_init %p\n", buffer );
     buffer->a_start   = 0;
     buffer->a_end     = 0;
@@ -898,8 +869,7 @@ bip_buffer_init( BipBuffer  buffer )
 }
 
 static void
-bip_buffer_close( BipBuffer  bip )
-{
+bip_buffer_close( BipBuffer  bip ) {
     bip->closed = 1;
 
     if (!bip->can_read) {
@@ -911,8 +881,7 @@ bip_buffer_close( BipBuffer  bip )
 }
 
 static void
-bip_buffer_done( BipBuffer  bip )
-{
+bip_buffer_done( BipBuffer  bip ) {
     BIPD(( "bip_buffer_done: %d->%d\n", bip->fdin, bip->fdout ));
     CloseHandle( bip->evt_read );
     CloseHandle( bip->evt_write );
@@ -920,8 +889,7 @@ bip_buffer_done( BipBuffer  bip )
 }
 
 static int
-bip_buffer_write( BipBuffer  bip, const void* src, int  len )
-{
+bip_buffer_write( BipBuffer  bip, const void* src, int  len ) {
     int  avail, count = 0;
 
     if (len <= 0)
@@ -956,8 +924,7 @@ bip_buffer_write( BipBuffer  bip, const void* src, int  len )
     BIPD(( "bip_buffer_write: exec %d->%d len %d\n", bip->fdin, bip->fdout, len ));
 
     avail = BIP_BUFFER_SIZE - bip->a_end;
-    if (avail > 0)
-    {
+    if (avail > 0) {
         /* we can append to region A */
         if (avail > len)
             avail = len;
@@ -1002,15 +969,14 @@ Exit:
     }
 
     BIPD(( "bip_buffer_write: exit %d->%d count %d (as=%d ae=%d be=%d cw=%d cr=%d\n",
-            bip->fdin, bip->fdout, count, bip->a_start, bip->a_end, bip->b_end, bip->can_write, bip->can_read ));
+           bip->fdin, bip->fdout, count, bip->a_start, bip->a_end, bip->b_end, bip->can_write, bip->can_read ));
     LeaveCriticalSection( &bip->lock );
 
     return count;
- }
+}
 
 static int
-bip_buffer_read( BipBuffer  bip, void*  dst, int  len )
-{
+bip_buffer_read( BipBuffer  bip, void*  dst, int  len ) {
     int  avail, count = 0;
 
     if (len <= 0)
@@ -1019,8 +985,7 @@ bip_buffer_read( BipBuffer  bip, void*  dst, int  len )
     BIPD(( "bip_buffer_read: enter %d->%d len %d\n", bip->fdin, bip->fdout, len ));
 
     EnterCriticalSection( &bip->lock );
-    while ( !bip->can_read )
-    {
+    while ( !bip->can_read ) {
 #if 0
         LeaveCriticalSection( &bip->lock );
         errno = EAGAIN;
@@ -1095,14 +1060,13 @@ Exit:
 
     BIPDUMP( (const unsigned char*)dst - count, count );
     BIPD(( "bip_buffer_read: exit %d->%d count %d (as=%d ae=%d be=%d cw=%d cr=%d\n",
-            bip->fdin, bip->fdout, count, bip->a_start, bip->a_end, bip->b_end, bip->can_write, bip->can_read ));
+           bip->fdin, bip->fdout, count, bip->a_start, bip->a_end, bip->b_end, bip->can_write, bip->can_read ));
     LeaveCriticalSection( &bip->lock );
 
     return count;
 }
 
-typedef struct SocketPairRec_
-{
+typedef struct SocketPairRec_ {
     BipBufferRec  a2b_bip;
     BipBufferRec  b2a_bip;
     FH            a_fd;
@@ -1110,14 +1074,12 @@ typedef struct SocketPairRec_
 
 } SocketPairRec;
 
-void _fh_socketpair_init( FH  f )
-{
+void _fh_socketpair_init( FH  f ) {
     f->fh_pair = NULL;
 }
 
 static int
-_fh_socketpair_close( FH  f )
-{
+_fh_socketpair_close( FH  f ) {
     if ( f->fh_pair ) {
         SocketPair  pair = f->fh_pair;
 
@@ -1139,15 +1101,13 @@ _fh_socketpair_close( FH  f )
 }
 
 static int
-_fh_socketpair_lseek( FH  f, int pos, int  origin )
-{
+_fh_socketpair_lseek( FH  f, int pos, int  origin ) {
     errno = ESPIPE;
     return -1;
 }
 
 static int
-_fh_socketpair_read( FH  f, void* buf, int  len )
-{
+_fh_socketpair_read( FH  f, void* buf, int  len ) {
     SocketPair  pair = f->fh_pair;
     BipBuffer   bip;
 
@@ -1163,8 +1123,7 @@ _fh_socketpair_read( FH  f, void* buf, int  len )
 }
 
 static int
-_fh_socketpair_write( FH  f, const void*  buf, int  len )
-{
+_fh_socketpair_write( FH  f, const void*  buf, int  len ) {
     SocketPair  pair = f->fh_pair;
     BipBuffer   bip;
 
@@ -1182,8 +1141,7 @@ _fh_socketpair_write( FH  f, const void*  buf, int  len )
 
 static void  _fh_socketpair_hook( FH  f, int  event, EventHook  hook );  /* forward */
 
-static const FHClassRec  _fh_socketpair_class =
-{
+static const FHClassRec  _fh_socketpair_class = {
     _fh_socketpair_init,
     _fh_socketpair_close,
     _fh_socketpair_lseek,
@@ -1193,8 +1151,7 @@ static const FHClassRec  _fh_socketpair_class =
 };
 
 
-int  adb_socketpair( int  sv[2] )
-{
+int  adb_socketpair( int  sv[2] ) {
     FH          fa, fb;
     SocketPair  pair;
 
@@ -1251,8 +1208,7 @@ Fail:
 #define FATAL(x...) fatal(__FUNCTION__, x)
 
 #if DEBUG
-static void dump_fde(fdevent *fde, const char *info)
-{
+static void dump_fde(fdevent *fde, const char *info) {
     fprintf(stderr,"FDE #%03d %c%c%c %s\n", fde->fd,
             fde->state & FDE_READ ? 'R' : ' ',
             fde->state & FDE_WRITE ? 'W' : ' ',
@@ -1284,8 +1240,7 @@ static int       fd_table_max = 0;
 
 typedef struct EventLooperRec_*  EventLooper;
 
-typedef struct EventHookRec_
-{
+typedef struct EventHookRec_ {
     EventHook    next;
     FH           fh;
     HANDLE       h;
@@ -1302,8 +1257,7 @@ typedef struct EventHookRec_
 static EventHook  _free_hooks;
 
 static EventHook
-event_hook_alloc( FH  fh )
-{
+event_hook_alloc( FH  fh ) {
     EventHook  hook = _free_hooks;
     if (hook != NULL)
         _free_hooks = hook->next;
@@ -1329,8 +1283,7 @@ event_hook_alloc( FH  fh )
 }
 
 static void
-event_hook_free( EventHook  hook )
-{
+event_hook_free( EventHook  hook ) {
     hook->fh     = NULL;
     hook->wanted = 0;
     hook->ready  = 0;
@@ -1340,8 +1293,7 @@ event_hook_free( EventHook  hook )
 
 
 static void
-event_hook_signal( EventHook  hook )
-{
+event_hook_signal( EventHook  hook ) {
     FH        f   = hook->fh;
     int       fd  = _fh_to_int(f);
     fdevent*  fde = fd_table[ fd - WIN32_FH_BASE ];
@@ -1358,8 +1310,7 @@ event_hook_signal( EventHook  hook )
 
 #define  MAX_LOOPER_HANDLES  WIN32_MAX_FHS
 
-typedef struct EventLooperRec_
-{
+typedef struct EventLooperRec_ {
     EventHook    hooks;
     HANDLE       htab[ MAX_LOOPER_HANDLES ];
     int          htab_count;
@@ -1367,8 +1318,7 @@ typedef struct EventLooperRec_
 } EventLooperRec;
 
 static EventHook*
-event_looper_find_p( EventLooper  looper, FH  fh )
-{
+event_looper_find_p( EventLooper  looper, FH  fh ) {
     EventHook  *pnode = &looper->hooks;
     EventHook   node  = *pnode;
     for (;;) {
@@ -1381,13 +1331,12 @@ event_looper_find_p( EventLooper  looper, FH  fh )
 }
 
 static void
-event_looper_hook( EventLooper  looper, int  fd, int  events )
-{
+event_looper_hook( EventLooper  looper, int  fd, int  events ) {
     FH          f = _fh_from_int(fd);
     EventHook  *pnode;
     EventHook   node;
 
-    if (f == NULL)  /* invalid arg */ {
+    if (f == NULL) { /* invalid arg */
         D("event_looper_hook: invalid fd=%d\n", fd);
         return;
     }
@@ -1403,18 +1352,17 @@ event_looper_hook( EventLooper  looper, int  fd, int  events )
     if ( (node->wanted & events) != events ) {
         /* this should update start/stop/check/peek */
         D("event_looper_hook: call hook for %d (new=%x, old=%x)\n",
-           fd, node->wanted, events);
+          fd, node->wanted, events);
         f->clazz->_fh_hook( f, events & ~node->wanted, node );
         node->wanted |= events;
     } else {
         D("event_looper_hook: ignoring events %x for %d wanted=%x)\n",
-           events, fd, node->wanted);
+          events, fd, node->wanted);
     }
 }
 
 static void
-event_looper_unhook( EventLooper  looper, int  fd, int  events )
-{
+event_looper_unhook( EventLooper  looper, int  fd, int  events ) {
     FH          fh    = _fh_from_int(fd);
     EventHook  *pnode = event_looper_find_p( looper, fh );
     EventHook   node  = *pnode;
@@ -1481,8 +1429,7 @@ typedef struct WaitForAllParam {
 
 /* Waiting thread routine. */
 static unsigned __stdcall
-_in_waiter_thread(void*  arg)
-{
+_in_waiter_thread(void*  arg) {
     HANDLE wait_on[WAIT_ALL_CHUNK_SIZE + 1];
     int res;
     WaitForAllParam* const param = (WaitForAllParam*)arg;
@@ -1517,8 +1464,7 @@ _in_waiter_thread(void*  arg)
  *  WAIT_FAILED on an error.
  */
 static int
-_wait_for_all(HANDLE* handles, int handles_count)
-{
+_wait_for_all(HANDLE* handles, int handles_count) {
     WaitForAllParam* threads;
     HANDLE main_event;
     int chunks, chunk, remains;
@@ -1539,7 +1485,7 @@ _wait_for_all(HANDLE* handles, int handles_count)
     chunks = handles_count / WAIT_ALL_CHUNK_SIZE;
     remains = handles_count % WAIT_ALL_CHUNK_SIZE;
     threads = (WaitForAllParam*)malloc((chunks + (remains ? 1 : 0)) *
-                                        sizeof(WaitForAllParam));
+                                       sizeof(WaitForAllParam));
     if (threads == NULL) {
         D("Unable to allocate thread array for %d handles.", handles_count);
         return (int)WAIT_FAILED;
@@ -1579,7 +1525,7 @@ _wait_for_all(HANDLE* handles, int handles_count)
         /* Note that using adb_thread_create is not appropriate here, since we
          * need a handle to wait on for thread termination. */
         threads[chunk].thread = (HANDLE)_beginthreadex(NULL, 0, _in_waiter_thread,
-                                                       &threads[chunk], 0, NULL);
+                                &threads[chunk], 0, NULL);
         if (threads[chunk].thread == NULL) {
             /* Unable to create a waiter thread. Collapse. */
             D("Unable to create a waiting thread %d of %d. errno=%d",
@@ -1609,14 +1555,12 @@ _wait_for_all(HANDLE* handles, int handles_count)
 
 static EventLooperRec  win32_looper;
 
-static void fdevent_init(void)
-{
+static void fdevent_init(void) {
     win32_looper.htab_count = 0;
     win32_looper.hooks      = NULL;
 }
 
-static void fdevent_connect(fdevent *fde)
-{
+static void fdevent_connect(fdevent *fde) {
     EventLooper  looper = &win32_looper;
     int          events = fde->state & FDE_EVENTMASK;
 
@@ -1624,8 +1568,7 @@ static void fdevent_connect(fdevent *fde)
         event_looper_hook( looper, fde->fd, events );
 }
 
-static void fdevent_disconnect(fdevent *fde)
-{
+static void fdevent_disconnect(fdevent *fde) {
     EventLooper  looper = &win32_looper;
     int          events = fde->state & FDE_EVENTMASK;
 
@@ -1633,8 +1576,7 @@ static void fdevent_disconnect(fdevent *fde)
         event_looper_unhook( looper, fde->fd, events );
 }
 
-static void fdevent_update(fdevent *fde, unsigned events)
-{
+static void fdevent_update(fdevent *fde, unsigned events) {
     EventLooper  looper  = &win32_looper;
     unsigned     events0 = fde->state & FDE_EVENTMASK;
 
@@ -1652,8 +1594,7 @@ static void fdevent_update(fdevent *fde, unsigned events)
     }
 }
 
-static void fdevent_process()
-{
+static void fdevent_process() {
     EventLooper  looper = &win32_looper;
     EventHook    hook;
     int          gotone = 0;
@@ -1671,12 +1612,10 @@ static void fdevent_process()
     }
 
     /* nothing's ready yet, so wait for something to happen */
-    if (!gotone)
-    {
+    if (!gotone) {
         looper->htab_count = 0;
 
-        for (hook = looper->hooks; hook; hook = hook->next)
-        {
+        for (hook = looper->hooks; hook; hook = hook->next) {
             if (hook->start && !hook->start(hook)) {
                 D( "fdevent_process: error when starting a hook\n" );
                 return;
@@ -1684,13 +1623,12 @@ static void fdevent_process()
             if (hook->h != INVALID_HANDLE_VALUE) {
                 int  nn;
 
-                for (nn = 0; nn < looper->htab_count; nn++)
-                {
+                for (nn = 0; nn < looper->htab_count; nn++) {
                     if ( looper->htab[nn] == hook->h )
                         goto DontAdd;
                 }
                 looper->htab[ looper->htab_count++ ] = hook->h;
-            DontAdd:
+DontAdd:
                 ;
             }
         }
@@ -1700,8 +1638,7 @@ static void fdevent_process()
             return;
         }
 
-        do
-        {
+        do {
             int   wait_ret;
 
             D( "adb_win32: waiting for %d events\n", looper->htab_count );
@@ -1719,13 +1656,10 @@ static void fdevent_process()
                 /* according to Cygwin, some objects like consoles wake up on "inappropriate" events
                  * like mouse movements. we need to filter these with the "check" function
                  */
-                if ((unsigned)wait_ret < (unsigned)looper->htab_count)
-                {
-                    for (hook = looper->hooks; hook; hook = hook->next)
-                    {
+                if ((unsigned)wait_ret < (unsigned)looper->htab_count) {
+                    for (hook = looper->hooks; hook; hook = hook->next) {
                         if ( looper->htab[wait_ret] == hook->h       &&
-                         (!hook->check || hook->check(hook)) )
-                        {
+                                (!hook->check || hook->check(hook)) ) {
                             D( "adb_win32: signaling %s for %x\n", hook->fh->name, hook->ready );
                             event_hook_signal( hook );
                             gotone = 1;
@@ -1734,8 +1668,7 @@ static void fdevent_process()
                     }
                 }
             }
-        }
-        while (!gotone);
+        } while (!gotone);
 
         for (hook = looper->hooks; hook; hook = hook->next) {
             if (hook->stop)
@@ -1745,13 +1678,12 @@ static void fdevent_process()
 
     for (hook = looper->hooks; hook; hook = hook->next) {
         if (hook->peek && hook->peek(hook))
-                event_hook_signal( hook );
+            event_hook_signal( hook );
     }
 }
 
 
-static void fdevent_register(fdevent *fde)
-{
+static void fdevent_register(fdevent *fde) {
     int  fd = fde->fd - WIN32_FH_BASE;
 
     if(fd < 0) {
@@ -1780,8 +1712,7 @@ static void fdevent_register(fdevent *fde)
     fd_table[fd] = fde;
 }
 
-static void fdevent_unregister(fdevent *fde)
-{
+static void fdevent_unregister(fdevent *fde) {
     int  fd = fde->fd - WIN32_FH_BASE;
 
     if((fd < 0) || (fd >= fd_table_max)) {
@@ -1800,8 +1731,7 @@ static void fdevent_unregister(fdevent *fde)
     }
 }
 
-static void fdevent_plist_enqueue(fdevent *node)
-{
+static void fdevent_plist_enqueue(fdevent *node) {
     fdevent *list = &list_pending;
 
     node->next = list;
@@ -1810,16 +1740,14 @@ static void fdevent_plist_enqueue(fdevent *node)
     list->prev = node;
 }
 
-static void fdevent_plist_remove(fdevent *node)
-{
+static void fdevent_plist_remove(fdevent *node) {
     node->prev->next = node->next;
     node->next->prev = node->prev;
     node->next = 0;
     node->prev = 0;
 }
 
-static fdevent *fdevent_plist_dequeue(void)
-{
+static fdevent *fdevent_plist_dequeue(void) {
     fdevent *list = &list_pending;
     fdevent *node = list->next;
 
@@ -1833,8 +1761,7 @@ static fdevent *fdevent_plist_dequeue(void)
     return node;
 }
 
-fdevent *fdevent_create(int fd, fd_func func, void *arg)
-{
+fdevent *fdevent_create(int fd, fd_func func, void *arg) {
     fdevent *fde = (fdevent*) malloc(sizeof(fdevent));
     if(fde == 0) return 0;
     fdevent_install(fde, fd, func, arg);
@@ -1842,8 +1769,7 @@ fdevent *fdevent_create(int fd, fd_func func, void *arg)
     return fde;
 }
 
-void fdevent_destroy(fdevent *fde)
-{
+void fdevent_destroy(fdevent *fde) {
     if(fde == 0) return;
     if(!(fde->state & FDE_CREATED)) {
         FATAL("fde %p not created by fdevent_create()\n", fde);
@@ -1851,8 +1777,7 @@ void fdevent_destroy(fdevent *fde)
     fdevent_remove(fde);
 }
 
-void fdevent_install(fdevent *fde, int fd, fd_func func, void *arg)
-{
+void fdevent_install(fdevent *fde, int fd, fd_func func, void *arg) {
     memset(fde, 0, sizeof(fdevent));
     fde->state = FDE_ACTIVE;
     fde->fd = fd;
@@ -1865,8 +1790,7 @@ void fdevent_install(fdevent *fde, int fd, fd_func func, void *arg)
     fde->state |= FDE_ACTIVE;
 }
 
-void fdevent_remove(fdevent *fde)
-{
+void fdevent_remove(fdevent *fde) {
     if(fde->state & FDE_PENDING) {
         fdevent_plist_remove(fde);
     }
@@ -1882,8 +1806,7 @@ void fdevent_remove(fdevent *fde)
 }
 
 
-void fdevent_set(fdevent *fde, unsigned events)
-{
+void fdevent_set(fdevent *fde, unsigned events) {
     events &= FDE_EVENTMASK;
 
     if((fde->state & FDE_EVENTMASK) == (int)events) return;
@@ -1896,10 +1819,10 @@ void fdevent_set(fdevent *fde, unsigned events)
     fde->state = (fde->state & FDE_STATEMASK) | events;
 
     if(fde->state & FDE_PENDING) {
-            /* if we're pending, make sure
-            ** we don't signal an event that
-            ** is no longer wanted.
-            */
+        /* if we're pending, make sure
+        ** we don't signal an event that
+        ** is no longer wanted.
+        */
         fde->events &= (~events);
         if(fde->events == 0) {
             fdevent_plist_remove(fde);
@@ -1908,20 +1831,17 @@ void fdevent_set(fdevent *fde, unsigned events)
     }
 }
 
-void fdevent_add(fdevent *fde, unsigned events)
-{
+void fdevent_add(fdevent *fde, unsigned events) {
     fdevent_set(
         fde, (fde->state & FDE_EVENTMASK) | (events & FDE_EVENTMASK));
 }
 
-void fdevent_del(fdevent *fde, unsigned events)
-{
+void fdevent_del(fdevent *fde, unsigned events) {
     fdevent_set(
         fde, (fde->state & FDE_EVENTMASK) & (~(events & FDE_EVENTMASK)));
 }
 
-void fdevent_loop()
-{
+void fdevent_loop() {
     fdevent *fde;
 
     for(;;) {
@@ -1943,21 +1863,18 @@ void fdevent_loop()
 /**  FILE EVENT HOOKS
  **/
 
-static void  _event_file_prepare( EventHook  hook )
-{
+static void  _event_file_prepare( EventHook  hook ) {
     if (hook->wanted & (FDE_READ|FDE_WRITE)) {
         /* we can always read/write */
         hook->ready |= hook->wanted & (FDE_READ|FDE_WRITE);
     }
 }
 
-static int  _event_file_peek( EventHook  hook )
-{
+static int  _event_file_peek( EventHook  hook ) {
     return (hook->wanted & (FDE_READ|FDE_WRITE));
 }
 
-static void  _fh_file_hook( FH  f, int  events, EventHook  hook )
-{
+static void  _fh_file_hook( FH  f, int  events, EventHook  hook ) {
     hook->h       = f->fh_handle;
     hook->prepare = _event_file_prepare;
     hook->peek    = _event_file_peek;
@@ -1966,8 +1883,7 @@ static void  _fh_file_hook( FH  f, int  events, EventHook  hook )
 /** SOCKET EVENT HOOKS
  **/
 
-static void  _event_socket_verify( EventHook  hook, WSANETWORKEVENTS*  evts )
-{
+static void  _event_socket_verify( EventHook  hook, WSANETWORKEVENTS*  evts ) {
     if ( evts->lNetworkEvents & (FD_READ|FD_ACCEPT|FD_CLOSE) ) {
         if (hook->wanted & FDE_READ)
             hook->ready |= FDE_READ;
@@ -1986,8 +1902,7 @@ static void  _event_socket_verify( EventHook  hook, WSANETWORKEVENTS*  evts )
     }
 }
 
-static void  _event_socket_prepare( EventHook  hook )
-{
+static void  _event_socket_prepare( EventHook  hook ) {
     WSANETWORKEVENTS  evts;
 
     /* look if some of the events we want already happened ? */
@@ -1995,8 +1910,7 @@ static void  _event_socket_prepare( EventHook  hook )
         _event_socket_verify( hook, &evts );
 }
 
-static int  _socket_wanted_to_flags( int  wanted )
-{
+static int  _socket_wanted_to_flags( int  wanted ) {
     int  flags = 0;
     if (wanted & FDE_READ)
         flags |= FD_READ | FD_ACCEPT | FD_CLOSE;
@@ -2010,8 +1924,7 @@ static int  _socket_wanted_to_flags( int  wanted )
     return flags;
 }
 
-static int _event_socket_start( EventHook  hook )
-{
+static int _event_socket_start( EventHook  hook ) {
     /* create an event which we're going to wait for */
     FH    fh    = hook->fh;
     long  flags = _socket_wanted_to_flags( hook->wanted );
@@ -2036,13 +1949,11 @@ static int _event_socket_start( EventHook  hook )
     return 1;
 }
 
-static void _event_socket_stop( EventHook  hook )
-{
+static void _event_socket_stop( EventHook  hook ) {
     hook->h = INVALID_HANDLE_VALUE;
 }
 
-static int  _event_socket_check( EventHook  hook )
-{
+static int  _event_socket_check( EventHook  hook ) {
     int               result = 0;
     FH                fh = hook->fh;
     WSANETWORKEVENTS  evts;
@@ -2058,8 +1969,7 @@ static int  _event_socket_check( EventHook  hook )
     return  result;
 }
 
-static int  _event_socket_peek( EventHook  hook )
-{
+static int  _event_socket_peek( EventHook  hook ) {
     WSANETWORKEVENTS  evts;
     FH                fh = hook->fh;
 
@@ -2075,8 +1985,7 @@ static int  _event_socket_peek( EventHook  hook )
 
 
 
-static void  _fh_socket_hook( FH  f, int  events, EventHook  hook )
-{
+static void  _fh_socket_hook( FH  f, int  events, EventHook  hook ) {
     hook->prepare = _event_socket_prepare;
     hook->start   = _event_socket_start;
     hook->stop    = _event_socket_stop;
@@ -2089,8 +1998,7 @@ static void  _fh_socket_hook( FH  f, int  events, EventHook  hook )
 /** SOCKETPAIR EVENT HOOKS
  **/
 
-static void  _event_socketpair_prepare( EventHook  hook )
-{
+static void  _event_socketpair_prepare( EventHook  hook ) {
     FH          fh   = hook->fh;
     SocketPair  pair = fh->fh_pair;
     BipBuffer   rbip = (pair->a_fd == fh) ? &pair->b2a_bip : &pair->a2b_bip;
@@ -2101,10 +2009,9 @@ static void  _event_socketpair_prepare( EventHook  hook )
 
     if (hook->wanted & FDE_WRITE && wbip->can_write)
         hook->ready |= FDE_WRITE;
- }
+}
 
- static int  _event_socketpair_start( EventHook  hook )
- {
+static int  _event_socketpair_start( EventHook  hook ) {
     FH          fh   = hook->fh;
     SocketPair  pair = fh->fh_pair;
     BipBuffer   rbip = (pair->a_fd == fh) ? &pair->b2a_bip : &pair->a2b_bip;
@@ -2125,14 +2032,12 @@ static void  _event_socketpair_prepare( EventHook  hook )
     return 1;
 }
 
-static int  _event_socketpair_peek( EventHook  hook )
-{
+static int  _event_socketpair_peek( EventHook  hook ) {
     _event_socketpair_prepare( hook );
     return hook->ready != 0;
 }
 
-static void  _fh_socketpair_hook( FH  fh, int  events, EventHook  hook )
-{
+static void  _fh_socketpair_hook( FH  fh, int  events, EventHook  hook ) {
     hook->prepare = _event_socketpair_prepare;
     hook->start   = _event_socketpair_start;
     hook->peek    = _event_socketpair_peek;
@@ -2140,8 +2045,7 @@ static void  _fh_socketpair_hook( FH  fh, int  events, EventHook  hook )
 
 
 void
-adb_sysdeps_init( void )
-{
+adb_sysdeps_init( void ) {
 #define  ADB_MUTEX(x)  InitializeCriticalSection( & x );
 #include "mutex_list.h"
     InitializeCriticalSection( &_win32_lock );
@@ -2179,49 +2083,48 @@ adb_sysdeps_init( void )
  */
 
 char *
-adb_strtok_r(char *s, const char *delim, char **last)
-{
-	char *spanp;
-	int c, sc;
-	char *tok;
+adb_strtok_r(char *s, const char *delim, char **last) {
+    char *spanp;
+    int c, sc;
+    char *tok;
 
 
-	if (s == NULL && (s = *last) == NULL)
-		return (NULL);
+    if (s == NULL && (s = *last) == NULL)
+        return (NULL);
 
-	/*
-	 * Skip (span) leading delimiters (s += strspn(s, delim), sort of).
-	 */
+    /*
+     * Skip (span) leading delimiters (s += strspn(s, delim), sort of).
+     */
 cont:
-	c = *s++;
-	for (spanp = (char *)delim; (sc = *spanp++) != 0;) {
-		if (c == sc)
-			goto cont;
-	}
+    c = *s++;
+    for (spanp = (char *)delim; (sc = *spanp++) != 0;) {
+        if (c == sc)
+            goto cont;
+    }
 
-	if (c == 0) {		/* no non-delimiter characters */
-		*last = NULL;
-		return (NULL);
-	}
-	tok = s - 1;
+    if (c == 0) {		/* no non-delimiter characters */
+        *last = NULL;
+        return (NULL);
+    }
+    tok = s - 1;
 
-	/*
-	 * Scan token (scan for delimiters: s += strcspn(s, delim), sort of).
-	 * Note that delim must have one NUL; we stop if we see that, too.
-	 */
-	for (;;) {
-		c = *s++;
-		spanp = (char *)delim;
-		do {
-			if ((sc = *spanp++) == c) {
-				if (c == 0)
-					s = NULL;
-				else
-					s[-1] = 0;
-				*last = s;
-				return (tok);
-			}
-		} while (sc != 0);
-	}
-	/* NOTREACHED */
+    /*
+     * Scan token (scan for delimiters: s += strcspn(s, delim), sort of).
+     * Note that delim must have one NUL; we stop if we see that, too.
+     */
+    for (;;) {
+        c = *s++;
+        spanp = (char *)delim;
+        do {
+            if ((sc = *spanp++) == c) {
+                if (c == 0)
+                    s = NULL;
+                else
+                    s[-1] = 0;
+                *last = s;
+                return (tok);
+            }
+        } while (sc != 0);
+    }
+    /* NOTREACHED */
 }

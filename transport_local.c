@@ -30,8 +30,7 @@
 
 #ifdef HAVE_BIG_ENDIAN
 #define H4(x)	(((x) & 0xFF000000) >> 24) | (((x) & 0x00FF0000) >> 8) | (((x) & 0x0000FF00) << 8) | (((x) & 0x000000FF) << 24)
-static inline void fix_endians(apacket *p)
-{
+static inline void fix_endians(apacket *p) {
     p->msg.command     = H4(p->msg.command);
     p->msg.arg0        = H4(p->msg.arg0);
     p->msg.arg1        = H4(p->msg.arg1);
@@ -55,9 +54,8 @@ ADB_MUTEX_DEFINE( local_transports_lock );
 static atransport*  local_transports[ ADB_LOCAL_TRANSPORT_MAX ];
 #endif /* ADB_HOST */
 
-static int remote_read(apacket *p, atransport *t)
-{
-    if(readx(t->sfd, &p->msg, sizeof(amessage))){
+static int remote_read(apacket *p, atransport *t) {
+    if(readx(t->sfd, &p->msg, sizeof(amessage))) {
         D("remote local: read terminated (message)\n");
         return -1;
     }
@@ -73,7 +71,7 @@ static int remote_read(apacket *p, atransport *t)
         return -1;
     }
 
-    if(readx(t->sfd, p->data, p->msg.data_length)){
+    if(readx(t->sfd, p->data, p->msg.data_length)) {
         D("remote local: terminated (data)\n");
         return -1;
     }
@@ -86,8 +84,7 @@ static int remote_read(apacket *p, atransport *t)
     return 0;
 }
 
-static int remote_write(apacket *p, atransport *t)
-{
+static int remote_write(apacket *p, atransport *t) {
     int   length = p->msg.data_length;
 
     fix_endians(p);
@@ -109,8 +106,7 @@ int local_connect(int port) {
     return local_connect_arbitrary_ports(port-1, port);
 }
 
-int local_connect_arbitrary_ports(int console_port, int adb_port)
-{
+int local_connect_arbitrary_ports(int console_port, int adb_port) {
     char buf[64];
     int  fd = -1;
 
@@ -136,8 +132,7 @@ int local_connect_arbitrary_ports(int console_port, int adb_port)
 }
 
 
-static void *client_socket_thread(void *x)
-{
+static void *client_socket_thread(void *x) {
 #if ADB_HOST
     int  port  = DEFAULT_ADB_LOCAL_TRANSPORT_PORT;
     int  count = ADB_LOCAL_TRANSPORT_MAX;
@@ -154,8 +149,7 @@ static void *client_socket_thread(void *x)
     return 0;
 }
 
-static void *server_socket_thread(void * arg)
-{
+static void *server_socket_thread(void * arg) {
     int serverfd, fd;
     struct sockaddr addr;
     socklen_t alen;
@@ -232,14 +226,13 @@ static void *server_socket_thread(void * arg)
  *   the transport registration is completed. That's why we need to send the
  *   'start' request after the transport is registered.
  */
-static void *qemu_socket_thread(void * arg)
-{
-/* 'accept' request to the adb QEMUD service. */
-static const char _accept_req[] = "accept";
-/* 'start' request to the adb QEMUD service. */
-static const char _start_req[]  = "start";
-/* 'ok' reply from the adb QEMUD service. */
-static const char _ok_resp[]    = "ok";
+static void *qemu_socket_thread(void * arg) {
+    /* 'accept' request to the adb QEMUD service. */
+    static const char _accept_req[] = "accept";
+    /* 'start' request to the adb QEMUD service. */
+    static const char _start_req[]  = "start";
+    /* 'ok' reply from the adb QEMUD service. */
+    static const char _ok_resp[]    = "ok";
 
     const int port = (int) (uintptr_t) arg;
     int res, fd;
@@ -299,8 +292,7 @@ static const char _ok_resp[]    = "ok";
 }
 #endif  // !ADB_HOST
 
-void local_init(int port)
-{
+void local_init(int port) {
     adb_thread_t thr;
     void* (*func)(void *);
 
@@ -332,8 +324,7 @@ void local_init(int port)
     }
 }
 
-static void remote_kick(atransport *t)
-{
+static void remote_kick(atransport *t) {
     int fd = t->sfd;
     t->sfd = -1;
     adb_shutdown(fd);
@@ -354,16 +345,14 @@ static void remote_kick(atransport *t)
 #endif
 }
 
-static void remote_close(atransport *t)
-{
+static void remote_close(atransport *t) {
     adb_close(t->fd);
 }
 
 
 #if ADB_HOST
 /* Only call this function if you already hold local_transports_lock. */
-atransport* find_emulator_transport_by_adb_port_locked(int adb_port)
-{
+atransport* find_emulator_transport_by_adb_port_locked(int adb_port) {
     int i;
     for (i = 0; i < ADB_LOCAL_TRANSPORT_MAX; i++) {
         if (local_transports[i] && local_transports[i]->adb_port == adb_port) {
@@ -373,8 +362,7 @@ atransport* find_emulator_transport_by_adb_port_locked(int adb_port)
     return NULL;
 }
 
-atransport* find_emulator_transport_by_adb_port(int adb_port)
-{
+atransport* find_emulator_transport_by_adb_port(int adb_port) {
     adb_mutex_lock( &local_transports_lock );
     atransport* result = find_emulator_transport_by_adb_port_locked(adb_port);
     adb_mutex_unlock( &local_transports_lock );
@@ -382,8 +370,7 @@ atransport* find_emulator_transport_by_adb_port(int adb_port)
 }
 
 /* Only call this function if you already hold local_transports_lock. */
-int get_available_local_transport_index_locked()
-{
+int get_available_local_transport_index_locked() {
     int i;
     for (i = 0; i < ADB_LOCAL_TRANSPORT_MAX; i++) {
         if (local_transports[i] == NULL) {
@@ -393,8 +380,7 @@ int get_available_local_transport_index_locked()
     return -1;
 }
 
-int get_available_local_transport_index()
-{
+int get_available_local_transport_index() {
     adb_mutex_lock( &local_transports_lock );
     int result = get_available_local_transport_index_locked();
     adb_mutex_unlock( &local_transports_lock );
@@ -402,8 +388,7 @@ int get_available_local_transport_index()
 }
 #endif
 
-int init_socket_transport(atransport *t, int s, int adb_port, int local)
-{
+int init_socket_transport(atransport *t, int s, int adb_port, int local) {
     int  fail = 0;
 
     t->kick = remote_kick;
@@ -422,22 +407,22 @@ int init_socket_transport(atransport *t, int s, int adb_port, int local)
         {
             t->adb_port = adb_port;
             atransport* existing_transport =
-                    find_emulator_transport_by_adb_port_locked(adb_port);
+                find_emulator_transport_by_adb_port_locked(adb_port);
             int index = get_available_local_transport_index_locked();
             if (existing_transport != NULL) {
                 D("local transport for port %d already registered (%p)?\n",
-                adb_port, existing_transport);
+                  adb_port, existing_transport);
                 fail = -1;
             } else if (index < 0) {
                 // Too many emulators.
                 D("cannot register more emulators. Maximum is %d\n",
-                        ADB_LOCAL_TRANSPORT_MAX);
+                  ADB_LOCAL_TRANSPORT_MAX);
                 fail = -1;
             } else {
                 local_transports[index] = t;
             }
-       }
-       adb_mutex_unlock( &local_transports_lock );
+        }
+        adb_mutex_unlock( &local_transports_lock );
     }
 #endif
     return fail;

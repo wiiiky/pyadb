@@ -60,8 +60,7 @@ static struct listnode key_list;
 
 
 /* Convert OpenSSL RSA private key to android pre-computed RSAPublicKey format */
-static int RSA_to_RSAPublicKey(RSA *rsa, RSAPublicKey *pkey)
-{
+static int RSA_to_RSAPublicKey(RSA *rsa, RSAPublicKey *pkey) {
     int ret = 1;
     unsigned int i;
 
@@ -107,8 +106,7 @@ out:
     return ret;
 }
 
-static void get_user_info(char *buf, size_t len)
-{
+static void get_user_info(char *buf, size_t len) {
     char hostname[1024], username[1024];
     int ret;
 
@@ -129,8 +127,7 @@ static void get_user_info(char *buf, size_t len)
         buf[len - 1] = '\0';
 }
 
-static int write_public_keyfile(RSA *private_key, const char *private_key_path)
-{
+static int write_public_keyfile(RSA *private_key, const char *private_key_path) {
     RSAPublicKey pkey;
     BIO *bio, *b64, *bfile;
     char path[PATH_MAX], info[MAX_PAYLOAD];
@@ -171,8 +168,7 @@ static int write_public_keyfile(RSA *private_key, const char *private_key_path)
     return 1;
 }
 
-static int generate_key(const char *file)
-{
+static int generate_key(const char *file) {
     EVP_PKEY* pkey = EVP_PKEY_new();
     BIGNUM* exponent = BN_new();
     RSA* rsa = RSA_new();
@@ -223,8 +219,7 @@ out:
     return ret;
 }
 
-static int read_key(const char *file, struct listnode *list)
-{
+static int read_key(const char *file, struct listnode *list) {
     struct adb_private_key *key;
     FILE *f;
 
@@ -257,8 +252,7 @@ static int read_key(const char *file, struct listnode *list)
     return 1;
 }
 
-static int get_user_keyfilepath(char *filename, size_t len)
-{
+static int get_user_keyfilepath(char *filename, size_t len) {
     const char *format, *home;
     char android_dir[PATH_MAX];
     struct stat buf;
@@ -280,7 +274,7 @@ static int get_user_keyfilepath(char *filename, size_t len)
     D("home '%s'\n", home);
 
     if (snprintf(android_dir, sizeof(android_dir), format, home,
-                        ANDROID_PATH) >= (int)sizeof(android_dir))
+                 ANDROID_PATH) >= (int)sizeof(android_dir))
         return -1;
 
     if (stat(android_dir, &buf)) {
@@ -293,8 +287,7 @@ static int get_user_keyfilepath(char *filename, size_t len)
     return snprintf(filename, len, format, android_dir, ADB_KEY_FILE);
 }
 
-static int get_user_key(struct listnode *list)
-{
+static int get_user_key(struct listnode *list) {
     struct stat buf;
     char path[PATH_MAX];
     int ret;
@@ -317,8 +310,7 @@ static int get_user_key(struct listnode *list)
     return read_key(path, list);
 }
 
-static void get_vendor_keys(struct listnode *list)
-{
+static void get_vendor_keys(struct listnode *list) {
     const char *adb_keys_path;
     char keys_path[MAX_PAYLOAD];
     char *path;
@@ -343,8 +335,7 @@ static void get_vendor_keys(struct listnode *list)
     }
 }
 
-int adb_auth_sign(void *node, void *token, size_t token_size, void *sig)
-{
+int adb_auth_sign(void *node, void *token, size_t token_size, void *sig) {
     unsigned int len;
     struct adb_private_key *key = node_to_item(node, struct adb_private_key, node);
 
@@ -356,8 +347,7 @@ int adb_auth_sign(void *node, void *token, size_t token_size, void *sig)
     return (int)len;
 }
 
-void *adb_auth_nextkey(void *current)
-{
+void *adb_auth_nextkey(void *current) {
     struct listnode *item;
 
     if (list_empty(&key_list))
@@ -378,8 +368,7 @@ void *adb_auth_nextkey(void *current)
     return NULL;
 }
 
-int adb_auth_get_userkey(unsigned char *data, size_t len)
-{
+int adb_auth_get_userkey(unsigned char *data, size_t len) {
     char path[PATH_MAX];
     char *file;
     int ret;
@@ -408,8 +397,7 @@ int adb_auth_get_userkey(unsigned char *data, size_t len)
     return ret + 1;
 }
 
-void adb_auth_init(void)
-{
+void adb_auth_init(void) {
     int ret;
 
     D("adb_auth_init\n");

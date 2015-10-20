@@ -23,8 +23,7 @@
 #include <stdio.h>
 
 void
-get_my_path(char *exe, size_t maxLen)
-{
+get_my_path(char *exe, size_t maxLen) {
     char proc[64];
 
     snprintf(proc, sizeof(proc), "/proc/%d/file", getpid());

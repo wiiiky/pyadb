@@ -32,8 +32,7 @@ static int system_ro = 1;
 static int vendor_ro = 1;
 
 /* Returns the device used to mount a directory in /proc/mounts */
-static char *find_mount(const char *dir)
-{
+static char *find_mount(const char *dir) {
     int fd;
     int res;
     char *token = NULL;
@@ -68,18 +67,16 @@ static char *find_mount(const char *dir)
     return NULL;
 }
 
-static int hasVendorPartition()
-{
+static int hasVendorPartition() {
     struct stat info;
     if (!lstat("/vendor", &info))
         if ((info.st_mode & S_IFMT) == S_IFDIR)
-          return true;
+            return true;
     return false;
 }
 
 /* Init mounts /system as read only, remount to enable writes. */
-static int remount(const char* dir, int* dir_ro)
-{
+static int remount(const char* dir, int* dir_ro) {
     char *dev;
     int fd;
     int OFF = 0;
@@ -107,13 +104,11 @@ static int remount(const char* dir, int* dir_ro)
     return *dir_ro;
 }
 
-static void write_string(int fd, const char* str)
-{
+static void write_string(int fd, const char* str) {
     writex(fd, str, strlen(str));
 }
 
-void remount_service(int fd, void *cookie)
-{
+void remount_service(int fd, void *cookie) {
     char buffer[200];
     if (remount("/system", &system_ro)) {
         snprintf(buffer, sizeof(buffer), "remount of system failed: %s\n",strerror(errno));

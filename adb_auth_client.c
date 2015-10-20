@@ -49,8 +49,7 @@ static struct adisconnect usb_disconnect = { usb_disconnected, 0, 0, 0 };
 static atransport* usb_transport;
 static bool needs_retry = false;
 
-static void read_keys(const char *file, struct listnode *list)
-{
+static void read_keys(const char *file, struct listnode *list) {
     struct adb_public_key *key;
     FILE *f;
     char buf[MAX_PAYLOAD];
@@ -94,8 +93,7 @@ static void read_keys(const char *file, struct listnode *list)
     fclose(f);
 }
 
-static void free_keys(struct listnode *list)
-{
+static void free_keys(struct listnode *list) {
     struct listnode *item;
 
     while (!list_empty(list)) {
@@ -105,8 +103,7 @@ static void free_keys(struct listnode *list)
     }
 }
 
-static void load_keys(struct listnode *list)
-{
+static void load_keys(struct listnode *list) {
     char *path;
     char **paths = key_paths;
     struct stat buf;
@@ -121,8 +118,7 @@ static void load_keys(struct listnode *list)
     }
 }
 
-int adb_auth_generate_token(void *token, size_t token_size)
-{
+int adb_auth_generate_token(void *token, size_t token_size) {
     FILE *f;
     int ret;
 
@@ -136,8 +132,7 @@ int adb_auth_generate_token(void *token, size_t token_size)
     return ret * token_size;
 }
 
-int adb_auth_verify(void *token, void *sig, int siglen)
-{
+int adb_auth_verify(void *token, void *sig, int siglen) {
     struct listnode *item;
     struct adb_public_key *key;
     struct listnode key_list;
@@ -160,16 +155,14 @@ int adb_auth_verify(void *token, void *sig, int siglen)
     return ret;
 }
 
-static void usb_disconnected(void* unused, atransport* t)
-{
+static void usb_disconnected(void* unused, atransport* t) {
     D("USB disconnect\n");
     remove_transport_disconnect(usb_transport, &usb_disconnect);
     usb_transport = NULL;
     needs_retry = false;
 }
 
-static void adb_auth_event(int fd, unsigned events, void *data)
-{
+static void adb_auth_event(int fd, unsigned events, void *data) {
     char response[2];
     int ret;
 
@@ -180,16 +173,14 @@ static void adb_auth_event(int fd, unsigned events, void *data)
             if (usb_transport)
                 fdevent_remove(&usb_transport->auth_fde);
             framework_fd = -1;
-        }
-        else if (ret == 2 && response[0] == 'O' && response[1] == 'K') {
+        } else if (ret == 2 && response[0] == 'O' && response[1] == 'K') {
             if (usb_transport)
                 adb_auth_verified(usb_transport);
         }
     }
 }
 
-void adb_auth_confirm_key(unsigned char *key, size_t len, atransport *t)
-{
+void adb_auth_confirm_key(unsigned char *key, size_t len, atransport *t) {
     char msg[MAX_PAYLOAD];
     int ret;
 
@@ -226,8 +217,7 @@ void adb_auth_confirm_key(unsigned char *key, size_t len, atransport *t)
     fdevent_add(&t->auth_fde, FDE_READ);
 }
 
-static void adb_auth_listener(int fd, unsigned events, void *data)
-{
+static void adb_auth_listener(int fd, unsigned events, void *data) {
     struct sockaddr addr;
     socklen_t alen;
     int s;
@@ -248,8 +238,7 @@ static void adb_auth_listener(int fd, unsigned events, void *data)
     }
 }
 
-void adb_auth_init(void)
-{
+void adb_auth_init(void) {
     int fd, ret;
 
     fd = android_get_control_socket("adbd");

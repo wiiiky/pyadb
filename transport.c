@@ -41,8 +41,7 @@ ADB_MUTEX_DEFINE( transport_lock );
 
 #if ADB_TRACE
 #define MAX_DUMP_HEX_LEN 16
-static void  dump_hex( const unsigned char*  ptr, size_t  len )
-{
+static void  dump_hex( const unsigned char*  ptr, size_t  len ) {
     int  nn, len2 = len;
     // Build a string instead of logging each character.
     // MAX chars in 2 digit hex, one space, MAX chars, one '\0'.
@@ -68,10 +67,8 @@ static void  dump_hex( const unsigned char*  ptr, size_t  len )
 #endif
 
 void
-kick_transport(atransport*  t)
-{
-    if (t && !t->kicked)
-    {
+kick_transport(atransport*  t) {
+    if (t && !t->kicked) {
         int  kicked;
 
         adb_mutex_lock(&transport_lock);
@@ -86,8 +83,7 @@ kick_transport(atransport*  t)
 }
 
 void
-run_transport_disconnects(atransport*  t)
-{
+run_transport_disconnects(atransport*  t) {
     adisconnect*  dis = t->disconnects.next;
 
     D("%s: run_transport_disconnects\n", t->serial);
@@ -100,8 +96,7 @@ run_transport_disconnects(atransport*  t)
 
 #if ADB_TRACE
 static void
-dump_packet(const char* name, const char* func, apacket* p)
-{
+dump_packet(const char* name, const char* func, apacket* p) {
     unsigned  command = p->msg.command;
     int       len     = p->msg.data_length;
     char      cmd[9];
@@ -133,14 +128,13 @@ dump_packet(const char* name, const char* func, apacket* p)
         snprintf(arg1, sizeof arg1, "0x%x", p->msg.arg1);
 
     D("%s: %s: [%s] arg0=%s arg1=%s (len=%d) ",
-        name, func, cmd, arg0, arg1, len);
+      name, func, cmd, arg0, arg1, len);
     dump_hex(p->data, len);
 }
 #endif /* ADB_TRACE */
 
 static int
-read_packet(int  fd, const char* name, apacket** ppacket)
-{
+read_packet(int  fd, const char* name, apacket** ppacket) {
     char *p = (char*)ppacket;  /* really read a packet address */
     int   r;
     int   len = sizeof(*ppacket);
@@ -170,8 +164,7 @@ read_packet(int  fd, const char* name, apacket** ppacket)
 }
 
 static int
-write_packet(int  fd, const char* name, apacket** ppacket)
-{
+write_packet(int  fd, const char* name, apacket** ppacket) {
     char *p = (char*) ppacket;  /* we really write the packet address */
     int r, len = sizeof(ppacket);
     char buff[8];
@@ -200,13 +193,12 @@ write_packet(int  fd, const char* name, apacket** ppacket)
     return 0;
 }
 
-static void transport_socket_events(int fd, unsigned events, void *_t)
-{
+static void transport_socket_events(int fd, unsigned events, void *_t) {
     atransport *t = _t;
     D("transport_socket_events(fd=%d, events=%04x,...)\n", fd, events);
-    if(events & FDE_READ){
+    if(events & FDE_READ) {
         apacket *p = 0;
-        if(read_packet(fd, t->serial, &p)){
+        if(read_packet(fd, t->serial, &p)) {
             D("%s: failed to read packet from transport socket on fd %d\n", t->serial, fd);
         } else {
             handle_packet(p, (atransport *) _t);
@@ -214,8 +206,7 @@ static void transport_socket_events(int fd, unsigned events, void *_t)
     }
 }
 
-void send_packet(apacket *p, atransport *t)
-{
+void send_packet(apacket *p, atransport *t) {
     unsigned char *x;
     unsigned sum;
     unsigned count;
@@ -225,7 +216,7 @@ void send_packet(apacket *p, atransport *t)
     count = p->msg.data_length;
     x = (unsigned char *) p->data;
     sum = 0;
-    while(count-- > 0){
+    while(count-- > 0) {
         sum += *x++;
     }
     p->msg.data_check = sum;
@@ -239,7 +230,7 @@ void send_packet(apacket *p, atransport *t)
         fatal_errno("Transport is null");
     }
 
-    if(write_packet(t->transport_socket, t->serial, &p)){
+    if(write_packet(t->transport_socket, t->serial, &p)) {
         fatal_errno("cannot enqueue packet on transport socket");
     }
 }
@@ -257,13 +248,12 @@ void send_packet(apacket *p, atransport *t)
 ** on its way out to disconnect the underlying device.
 */
 
-static void *output_thread(void *_t)
-{
+static void *output_thread(void *_t) {
     atransport *t = _t;
     apacket *p;
 
     D("%s: starting transport output thread on fd %d, SYNC online (%d)\n",
-       t->serial, t->fd, t->sync_token + 1);
+      t->serial, t->fd, t->sync_token + 1);
     p = get_apacket();
     p->msg.command = A_SYNC;
     p->msg.arg0 = 1;
@@ -279,10 +269,10 @@ static void *output_thread(void *_t)
     for(;;) {
         p = get_apacket();
 
-        if(t->read_from_remote(p, t) == 0){
+        if(t->read_from_remote(p, t) == 0) {
             D("%s: received remote packet, sending to transport\n",
               t->serial);
-            if(write_packet(t->fd, t->serial, &p)){
+            if(write_packet(t->fd, t->serial, &p)) {
                 put_apacket(p);
                 D("%s: failed to write apacket to transport\n", t->serial);
                 goto oops;
@@ -312,22 +302,21 @@ oops:
     return 0;
 }
 
-static void *input_thread(void *_t)
-{
+static void *input_thread(void *_t) {
     atransport *t = _t;
     apacket *p;
     int active = 0;
 
     D("%s: starting transport input thread, reading from fd %d\n",
-       t->serial, t->fd);
+      t->serial, t->fd);
 
-    for(;;){
+    for(;;) {
         if(read_packet(t->fd, t->serial, &p)) {
             D("%s: failed to read apacket from transport on fd %d\n",
-               t->serial, t->fd );
+              t->serial, t->fd );
             break;
         }
-        if(p->msg.command == A_SYNC){
+        if(p->msg.command == A_SYNC) {
             if(p->msg.arg0 == 0) {
                 D("%s: transport SYNC offline\n", t->serial);
                 put_apacket(p);
@@ -370,8 +359,7 @@ static fdevent transport_registration_fde;
 
 
 #if ADB_HOST
-static int list_transports_msg(char*  buffer, size_t  bufferlen)
-{
+static int list_transports_msg(char*  buffer, size_t  bufferlen) {
     char  head[5];
     int   len;
 
@@ -398,8 +386,7 @@ struct device_tracker {
 static device_tracker*   device_tracker_list;
 
 static void
-device_tracker_remove( device_tracker*  tracker )
-{
+device_tracker_remove( device_tracker*  tracker ) {
     device_tracker**  pnode = &device_tracker_list;
     device_tracker*   node  = *pnode;
 
@@ -416,8 +403,7 @@ device_tracker_remove( device_tracker*  tracker )
 }
 
 static void
-device_tracker_close( asocket*  socket )
-{
+device_tracker_close( asocket*  socket ) {
     device_tracker*  tracker = (device_tracker*) socket;
     asocket*         peer    = socket->peer;
 
@@ -431,8 +417,7 @@ device_tracker_close( asocket*  socket )
 }
 
 static int
-device_tracker_enqueue( asocket*  socket, apacket*  p )
-{
+device_tracker_enqueue( asocket*  socket, apacket*  p ) {
     /* you can't read from a device tracker, close immediately */
     put_apacket(p);
     device_tracker_close(socket);
@@ -442,8 +427,7 @@ device_tracker_enqueue( asocket*  socket, apacket*  p )
 static int
 device_tracker_send( device_tracker*  tracker,
                      const char*      buffer,
-                     int              len )
-{
+                     int              len ) {
     apacket*  p = get_apacket();
     asocket*  peer = tracker->socket.peer;
 
@@ -454,8 +438,7 @@ device_tracker_send( device_tracker*  tracker,
 
 
 static void
-device_tracker_ready( asocket*  socket )
-{
+device_tracker_ready( asocket*  socket ) {
     device_tracker*  tracker = (device_tracker*) socket;
 
     /* we want to send the device list when the tracker connects
@@ -473,8 +456,7 @@ device_tracker_ready( asocket*  socket )
 
 
 asocket*
-create_device_tracker(void)
-{
+create_device_tracker(void) {
     device_tracker*  tracker = calloc(1,sizeof(*tracker));
 
     if(tracker == 0) fatal("cannot allocate device tracker");
@@ -494,8 +476,7 @@ create_device_tracker(void)
 
 
 /* call this function each time the transport list has changed */
-void  update_transports(void)
-{
+void  update_transports(void) {
     char             buffer[1024];
     int              len;
     device_tracker*  tracker;
@@ -511,22 +492,19 @@ void  update_transports(void)
     }
 }
 #else
-void  update_transports(void)
-{
+void  update_transports(void) {
     // nothing to do on the device side
 }
 #endif // ADB_HOST
 
 typedef struct tmsg tmsg;
-struct tmsg
-{
+struct tmsg {
     atransport *transport;
     int         action;
 };
 
 static int
-transport_read_action(int  fd, struct tmsg*  m)
-{
+transport_read_action(int  fd, struct tmsg*  m) {
     char *p   = (char*)m;
     int   len = sizeof(*m);
     int   r;
@@ -547,8 +525,7 @@ transport_read_action(int  fd, struct tmsg*  m)
 }
 
 static int
-transport_write_action(int  fd, struct tmsg*  m)
-{
+transport_write_action(int  fd, struct tmsg*  m) {
     char *p   = (char*)m;
     int   len = sizeof(*m);
     int   r;
@@ -568,8 +545,7 @@ transport_write_action(int  fd, struct tmsg*  m)
     return 0;
 }
 
-static void transport_registration_func(int _fd, unsigned ev, void *data)
-{
+static void transport_registration_func(int _fd, unsigned ev, void *data) {
     tmsg m;
     adb_thread_t output_thread_ptr;
     adb_thread_t input_thread_ptr;
@@ -586,12 +562,12 @@ static void transport_registration_func(int _fd, unsigned ev, void *data)
 
     t = m.transport;
 
-    if(m.action == 0){
+    if(m.action == 0) {
         D("transport: %s removing and free'ing %d\n", t->serial, t->transport_socket);
 
-            /* IMPORTANT: the remove closes one half of the
-            ** socket pair.  The close closes the other half.
-            */
+        /* IMPORTANT: the remove closes one half of the
+        ** socket pair.  The close closes the other half.
+        */
         fdevent_remove(&(t->transport_fde));
         adb_close(t->fd);
 
@@ -641,11 +617,11 @@ static void transport_registration_func(int _fd, unsigned ev, void *data)
 
         fdevent_set(&(t->transport_fde), FDE_READ);
 
-        if(adb_thread_create(&input_thread_ptr, input_thread, t)){
+        if(adb_thread_create(&input_thread_ptr, input_thread, t)) {
             fatal_errno("cannot create input thread");
         }
 
-        if(adb_thread_create(&output_thread_ptr, output_thread, t)){
+        if(adb_thread_create(&output_thread_ptr, output_thread, t)) {
             fatal_errno("cannot create output thread");
         }
     }
@@ -666,11 +642,10 @@ static void transport_registration_func(int _fd, unsigned ev, void *data)
     update_transports();
 }
 
-void init_transport_registration(void)
-{
+void init_transport_registration(void) {
     int s[2];
 
-    if(adb_socketpair(s)){
+    if(adb_socketpair(s)) {
         fatal_errno("cannot open transport registration socketpair");
     }
 
@@ -686,8 +661,7 @@ void init_transport_registration(void)
 }
 
 /* the fdevent select pump is single threaded */
-static void register_transport(atransport *transport)
-{
+static void register_transport(atransport *transport) {
     tmsg m;
     m.transport = transport;
     m.action = 1;
@@ -697,8 +671,7 @@ static void register_transport(atransport *transport)
     }
 }
 
-static void remove_transport(atransport *transport)
-{
+static void remove_transport(atransport *transport) {
     tmsg m;
     m.transport = transport;
     m.action = 0;
@@ -709,8 +682,7 @@ static void remove_transport(atransport *transport)
 }
 
 
-static void transport_unref_locked(atransport *t)
-{
+static void transport_unref_locked(atransport *t) {
     t->ref_count--;
     if (t->ref_count == 0) {
         D("transport: %s unref (kicking and closing)\n", t->serial);
@@ -725,8 +697,7 @@ static void transport_unref_locked(atransport *t)
     }
 }
 
-static void transport_unref(atransport *t)
-{
+static void transport_unref(atransport *t) {
     if (t) {
         adb_mutex_lock(&transport_lock);
         transport_unref_locked(t);
@@ -734,8 +705,7 @@ static void transport_unref(atransport *t)
     }
 }
 
-void add_transport_disconnect(atransport*  t, adisconnect*  dis)
-{
+void add_transport_disconnect(atransport*  t, adisconnect*  dis) {
     adb_mutex_lock(&transport_lock);
     dis->next       = &t->disconnects;
     dis->prev       = dis->next->prev;
@@ -744,15 +714,13 @@ void add_transport_disconnect(atransport*  t, adisconnect*  dis)
     adb_mutex_unlock(&transport_lock);
 }
 
-void remove_transport_disconnect(atransport*  t, adisconnect*  dis)
-{
+void remove_transport_disconnect(atransport*  t, adisconnect*  dis) {
     dis->prev->next = dis->next;
     dis->next->prev = dis->prev;
     dis->next = dis->prev = dis;
 }
 
-static int qual_char_is_invalid(char ch)
-{
+static int qual_char_is_invalid(char ch) {
     if ('A' <= ch && ch <= 'Z')
         return 0;
     if ('a' <= ch && ch <= 'z')
@@ -763,8 +731,7 @@ static int qual_char_is_invalid(char ch)
 }
 
 static int qual_match(const char *to_test,
-                      const char *prefix, const char *qual, int sanitize_qual)
-{
+                      const char *prefix, const char *qual, int sanitize_qual) {
     if (!to_test || !*to_test)
         /* Return true if both the qual and to_test are null strings. */
         return !qual || !*qual;
@@ -791,8 +758,7 @@ static int qual_match(const char *to_test,
     return !*to_test;
 }
 
-atransport *acquire_one_transport(int state, transport_type ttype, const char* serial, char** error_out)
-{
+atransport *acquire_one_transport(int state, transport_type ttype, const char* serial, char** error_out) {
     atransport *t;
     atransport *result = NULL;
     int ambiguous = 0;
@@ -804,18 +770,18 @@ retry:
     adb_mutex_lock(&transport_lock);
     for (t = transport_list.next; t != &transport_list; t = t->next) {
         if (t->connection_state == CS_NOPERM) {
-        if (error_out)
-            *error_out = "insufficient permissions for device";
+            if (error_out)
+                *error_out = "insufficient permissions for device";
             continue;
         }
 
         /* check for matching serial number */
         if (serial) {
             if ((t->serial && !strcmp(serial, t->serial)) ||
-                (t->devpath && !strcmp(serial, t->devpath)) ||
-                qual_match(serial, "product:", t->product, 0) ||
-                qual_match(serial, "model:", t->model, 1) ||
-                qual_match(serial, "device:", t->device, 0)) {
+                    (t->devpath && !strcmp(serial, t->devpath)) ||
+                    qual_match(serial, "product:", t->product, 0) ||
+                    qual_match(serial, "model:", t->model, 1) ||
+                    qual_match(serial, "device:", t->device, 0)) {
                 if (result) {
                     if (error_out)
                         *error_out = "more than one device";
@@ -865,13 +831,13 @@ retry:
             result = NULL;
         }
 
-         /* offline devices are ignored -- they are either being born or dying */
+        /* offline devices are ignored -- they are either being born or dying */
         if (result && result->connection_state == CS_OFFLINE) {
             if (error_out)
                 *error_out = "device offline";
             result = NULL;
         }
-         /* check for required connection state */
+        /* check for required connection state */
         if (result && state != CS_ANY && result->connection_state != state) {
             if (error_out)
                 *error_out = "invalid device state";
@@ -892,24 +858,31 @@ retry:
 }
 
 #if ADB_HOST
-static const char *statename(atransport *t)
-{
-    switch(t->connection_state){
-    case CS_OFFLINE: return "offline";
-    case CS_BOOTLOADER: return "bootloader";
-    case CS_DEVICE: return "device";
-    case CS_HOST: return "host";
-    case CS_RECOVERY: return "recovery";
-    case CS_SIDELOAD: return "sideload";
-    case CS_NOPERM: return "no permissions";
-    case CS_UNAUTHORIZED: return "unauthorized";
-    default: return "unknown";
+static const char *statename(atransport *t) {
+    switch(t->connection_state) {
+    case CS_OFFLINE:
+        return "offline";
+    case CS_BOOTLOADER:
+        return "bootloader";
+    case CS_DEVICE:
+        return "device";
+    case CS_HOST:
+        return "host";
+    case CS_RECOVERY:
+        return "recovery";
+    case CS_SIDELOAD:
+        return "sideload";
+    case CS_NOPERM:
+        return "no permissions";
+    case CS_UNAUTHORIZED:
+        return "unauthorized";
+    default:
+        return "unknown";
     }
 }
 
 static void add_qual(char **buf, size_t *buf_size,
-                     const char *prefix, const char *qual, int sanitize_qual)
-{
+                     const char *prefix, const char *qual, int sanitize_qual) {
     size_t len;
     int prefix_len;
 
@@ -931,8 +904,7 @@ static void add_qual(char **buf, size_t *buf_size,
 }
 
 static size_t format_transport(atransport *t, char *buf, size_t bufsize,
-                               int long_listing)
-{
+                               int long_listing) {
     const char* serial = t->serial;
     if (!serial || !serial[0])
         serial = "????????????";
@@ -958,14 +930,13 @@ static size_t format_transport(atransport *t, char *buf, size_t bufsize,
     }
 }
 
-int list_transports(char *buf, size_t  bufsize, int long_listing)
-{
+int list_transports(char *buf, size_t  bufsize, int long_listing) {
     char*       p   = buf;
     char*       end = buf + bufsize;
     int         len;
     atransport *t;
 
-        /* XXX OVERRUN PROBLEMS XXX */
+    /* XXX OVERRUN PROBLEMS XXX */
     adb_mutex_lock(&transport_lock);
     for(t = transport_list.next; t != &transport_list; t = t->next) {
         len = format_transport(t, p, end - p, long_listing);
@@ -982,8 +953,7 @@ int list_transports(char *buf, size_t  bufsize, int long_listing)
 
 
 /* hack for osx */
-void close_usb_devices()
-{
+void close_usb_devices() {
     atransport *t;
 
     adb_mutex_lock(&transport_lock);
@@ -997,8 +967,7 @@ void close_usb_devices()
 }
 #endif // ADB_HOST
 
-int register_socket_transport(int s, const char *serial, int port, int local)
-{
+int register_socket_transport(int s, const char *serial, int port, int local) {
     atransport *t = calloc(1, sizeof(atransport));
     atransport *n;
     char buff[32];
@@ -1042,8 +1011,7 @@ int register_socket_transport(int s, const char *serial, int port, int local)
 }
 
 #if ADB_HOST
-atransport *find_transport(const char *serial)
-{
+atransport *find_transport(const char *serial) {
     atransport *t;
 
     adb_mutex_lock(&transport_lock);
@@ -1051,7 +1019,7 @@ atransport *find_transport(const char *serial)
         if (t->serial && !strcmp(serial, t->serial)) {
             break;
         }
-     }
+    }
     adb_mutex_unlock(&transport_lock);
 
     if (t != &transport_list)
@@ -1060,8 +1028,7 @@ atransport *find_transport(const char *serial)
         return 0;
 }
 
-void unregister_transport(atransport *t)
-{
+void unregister_transport(atransport *t) {
     adb_mutex_lock(&transport_lock);
     t->next->prev = t->prev;
     t->prev->next = t->next;
@@ -1072,8 +1039,7 @@ void unregister_transport(atransport *t)
 }
 
 // unregisters all non-emulator TCP transports
-void unregister_all_tcp_transports()
-{
+void unregister_all_tcp_transports() {
     atransport *t, *next;
     adb_mutex_lock(&transport_lock);
     for (t = transport_list.next; t != &transport_list; t = next) {
@@ -1082,22 +1048,20 @@ void unregister_all_tcp_transports()
             t->next->prev = t->prev;
             t->prev->next = next;
             // we cannot call kick_transport when holding transport_lock
-            if (!t->kicked)
-            {
+            if (!t->kicked) {
                 t->kicked = 1;
                 t->kick(t);
             }
             transport_unref_locked(t);
         }
-     }
+    }
 
     adb_mutex_unlock(&transport_lock);
 }
 
 #endif
 
-void register_usb_transport(usb_handle *usb, const char *serial, const char *devpath, unsigned writeable)
-{
+void register_usb_transport(usb_handle *usb, const char *serial, const char *devpath, unsigned writeable) {
     atransport *t = calloc(1, sizeof(atransport));
     D("transport: %p init'ing for usb_handle %p (sn='%s')\n", t, usb,
       serial ? serial : "");
@@ -1120,8 +1084,7 @@ void register_usb_transport(usb_handle *usb, const char *serial, const char *dev
 }
 
 /* this should only be used for transports with connection_state == CS_NOPERM */
-void unregister_usb_transport(usb_handle *usb)
-{
+void unregister_usb_transport(usb_handle *usb) {
     atransport *t;
     adb_mutex_lock(&transport_lock);
     for(t = transport_list.next; t != &transport_list; t = t->next) {
@@ -1130,15 +1093,14 @@ void unregister_usb_transport(usb_handle *usb)
             t->prev->next = t->next;
             break;
         }
-     }
+    }
     adb_mutex_unlock(&transport_lock);
 }
 
 #undef TRACE_TAG
 #define TRACE_TAG  TRACE_RWX
 
-int readx(int fd, void *ptr, size_t len)
-{
+int readx(int fd, void *ptr, size_t len) {
     char *p = ptr;
     int r;
 #if ADB_TRACE
@@ -1169,8 +1131,7 @@ int readx(int fd, void *ptr, size_t len)
     return 0;
 }
 
-int writex(int fd, const void *ptr, size_t len)
-{
+int writex(int fd, const void *ptr, size_t len) {
     char *p = (char*) ptr;
     int r;
 
@@ -1201,8 +1162,7 @@ int writex(int fd, const void *ptr, size_t len)
     return 0;
 }
 
-int check_header(apacket *p)
-{
+int check_header(apacket *p) {
     if(p->msg.magic != (p->msg.command ^ 0xffffffff)) {
         D("check_header(): invalid magic\n");
         return -1;
@@ -1216,8 +1176,7 @@ int check_header(apacket *p)
     return 0;
 }
 
-int check_data(apacket *p)
-{
+int check_data(apacket *p) {
     unsigned count, sum;
     unsigned char *x;
 

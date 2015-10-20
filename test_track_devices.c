@@ -7,15 +7,13 @@
 #include <memory.h>
 
 static void
-panic( const char*  msg )
-{
+panic( const char*  msg ) {
     fprintf(stderr, "PANIC: %s: %s\n", msg, strerror(errno));
     exit(1);
 }
 
 static int
-unix_write( int  fd, const char*  buf, int  len )
-{
+unix_write( int  fd, const char*  buf, int  len ) {
     int  result = 0;
     while (len > 0) {
         int  len2 = write(fd, buf, len);
@@ -32,8 +30,7 @@ unix_write( int  fd, const char*  buf, int  len )
 }
 
 static int
-unix_read( int  fd, char*  buf, int  len )
-{
+unix_read( int  fd, char*  buf, int  len ) {
     int  result = 0;
     while (len > 0) {
         int  len2 = read(fd, buf, len);
@@ -50,8 +47,7 @@ unix_read( int  fd, char*  buf, int  len )
 }
 
 
-int  main( void )
-{
+int  main( void ) {
     int                  ret, s;
     struct sockaddr_in   server;
     char                 buffer[1024];

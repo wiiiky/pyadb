@@ -35,8 +35,7 @@
 static IONotificationPortRef    notificationPort = 0;
 static io_iterator_t*           notificationIterators;
 
-struct usb_handle
-{
+struct usb_handle {
     UInt8                     bulkIn;
     UInt8                     bulkOut;
     IOUSBInterfaceInterface   **interface;
@@ -57,8 +56,7 @@ static usb_handle* CheckInterface(IOUSBInterfaceInterface **iface,
                                   UInt16 vendor, UInt16 product);
 
 static int
-InitUSB()
-{
+InitUSB() {
     CFMutableDictionaryRef  matchingDict;
     CFRunLoopSourceRef      runLoopSource;
     SInt32                  vendor, if_subclass, if_protocol;
@@ -99,12 +97,12 @@ InitUSB()
                              CFNumberCreate(kCFAllocatorDefault,
                                             kCFNumberSInt32Type, &if_protocol));
         IOServiceAddMatchingNotification(
-                notificationPort,
-                kIOFirstMatchNotification,
-                matchingDict,
-                AndroidInterfaceAdded,
-                NULL,
-                &notificationIterators[i]);
+            notificationPort,
+            kIOFirstMatchNotification,
+            matchingDict,
+            AndroidInterfaceAdded,
+            NULL,
+            &notificationIterators[i]);
 
         //* Iterate over set of matching interfaces to access already-present
         //* devices and to arm the notification
@@ -115,8 +113,7 @@ InitUSB()
 }
 
 static void
-AndroidInterfaceAdded(void *refCon, io_iterator_t iterator)
-{
+AndroidInterfaceAdded(void *refCon, io_iterator_t iterator) {
     kern_return_t            kr;
     io_service_t             usbDevice;
     io_service_t             usbInterface;
@@ -147,8 +144,8 @@ AndroidInterfaceAdded(void *refCon, io_iterator_t iterator)
 
         //* This gets us the interface object
         result = (*plugInInterface)->QueryInterface(plugInInterface,
-                CFUUIDGetUUIDBytes(kIOUSBInterfaceInterfaceID), (LPVOID)
-                &iface);
+                 CFUUIDGetUUIDBytes(kIOUSBInterfaceInterfaceID), (LPVOID)
+                 &iface);
         //* We only needed the plugin to get the interface, so discard it
         (*plugInInterface)->Release(plugInInterface);
         if (result || !iface) {
@@ -181,7 +178,7 @@ AndroidInterfaceAdded(void *refCon, io_iterator_t iterator)
         }
 
         result = (*plugInInterface)->QueryInterface(plugInInterface,
-                CFUUIDGetUUIDBytes(kIOUSBDeviceInterfaceID), (LPVOID) &dev);
+                 CFUUIDGetUUIDBytes(kIOUSBDeviceInterfaceID), (LPVOID) &dev);
         //* only needed this to query the plugin
         (*plugInInterface)->Release(plugInInterface);
         if (result || !dev) {
@@ -202,54 +199,54 @@ AndroidInterfaceAdded(void *refCon, io_iterator_t iterator)
         }
         kr = (*dev)->USBGetSerialNumberStringIndex(dev, &serialIndex);
 
-	if (serialIndex > 0) {
-		IOUSBDevRequest req;
-		UInt16          buffer[256];
-		UInt16          languages[128];
+        if (serialIndex > 0) {
+            IOUSBDevRequest req;
+            UInt16          buffer[256];
+            UInt16          languages[128];
 
-		memset(languages, 0, sizeof(languages));
+            memset(languages, 0, sizeof(languages));
 
-		req.bmRequestType =
-			USBmakebmRequestType(kUSBIn, kUSBStandard, kUSBDevice);
-		req.bRequest = kUSBRqGetDescriptor;
-		req.wValue = (kUSBStringDesc << 8) | 0;
-		req.wIndex = 0;
-		req.pData = languages;
-		req.wLength = sizeof(languages);
-		kr = (*dev)->DeviceRequest(dev, &req);
+            req.bmRequestType =
+                USBmakebmRequestType(kUSBIn, kUSBStandard, kUSBDevice);
+            req.bRequest = kUSBRqGetDescriptor;
+            req.wValue = (kUSBStringDesc << 8) | 0;
+            req.wIndex = 0;
+            req.pData = languages;
+            req.wLength = sizeof(languages);
+            kr = (*dev)->DeviceRequest(dev, &req);
 
-		if (kr == kIOReturnSuccess && req.wLenDone > 0) {
+            if (kr == kIOReturnSuccess && req.wLenDone > 0) {
 
-			int langCount = (req.wLenDone - 2) / 2, lang;
+                int langCount = (req.wLenDone - 2) / 2, lang;
 
-			for (lang = 1; lang <= langCount; lang++) {
+                for (lang = 1; lang <= langCount; lang++) {
 
-                                memset(buffer, 0, sizeof(buffer));
-                                memset(&req, 0, sizeof(req));
+                    memset(buffer, 0, sizeof(buffer));
+                    memset(&req, 0, sizeof(req));
 
-				req.bmRequestType =
-					USBmakebmRequestType(kUSBIn, kUSBStandard, kUSBDevice);
-				req.bRequest = kUSBRqGetDescriptor;
-				req.wValue = (kUSBStringDesc << 8) | serialIndex;
-				req.wIndex = languages[lang];
-				req.pData = buffer;
-				req.wLength = sizeof(buffer);
-				kr = (*dev)->DeviceRequest(dev, &req);
+                    req.bmRequestType =
+                        USBmakebmRequestType(kUSBIn, kUSBStandard, kUSBDevice);
+                    req.bRequest = kUSBRqGetDescriptor;
+                    req.wValue = (kUSBStringDesc << 8) | serialIndex;
+                    req.wIndex = languages[lang];
+                    req.pData = buffer;
+                    req.wLength = sizeof(buffer);
+                    kr = (*dev)->DeviceRequest(dev, &req);
 
-				if (kr == kIOReturnSuccess && req.wLenDone > 0) {
-					int i, count;
+                    if (kr == kIOReturnSuccess && req.wLenDone > 0) {
+                        int i, count;
 
-					// skip first word, and copy the rest to the serial string,
-					// changing shorts to bytes.
-					count = (req.wLenDone - 1) / 2;
-					for (i = 0; i < count; i++)
-						serial[i] = buffer[i + 1];
-					serial[i] = 0;
-                                        break;
-				}
-			}
-		}
-	}
+                        // skip first word, and copy the rest to the serial string,
+                        // changing shorts to bytes.
+                        count = (req.wLenDone - 1) / 2;
+                        for (i = 0; i < count; i++)
+                            serial[i] = buffer[i + 1];
+                        serial[i] = 0;
+                        break;
+                    }
+                }
+            }
+        }
         (*dev)->Release(dev);
 
         DBG("INFO: Found vid=%04x pid=%04x serial=%s\n", vendor, product,
@@ -270,11 +267,11 @@ AndroidInterfaceAdded(void *refCon, io_iterator_t iterator)
         // Pass the reference to our private data as the refCon for the
         // notification.
         kr = IOServiceAddInterestNotification(notificationPort,
-                usbInterface,
-                kIOGeneralInterest,
-                AndroidInterfaceNotify,
-                handle,
-                &handle->usbNotification);
+                                              usbInterface,
+                                              kIOGeneralInterest,
+                                              AndroidInterfaceNotify,
+                                              handle,
+                                              &handle->usbNotification);
 
         if (kIOReturnSuccess != kr) {
             DBG("ERR: Unable to create interest notification (%08x)\n", kr);
@@ -283,8 +280,7 @@ AndroidInterfaceAdded(void *refCon, io_iterator_t iterator)
 }
 
 static void
-AndroidInterfaceNotify(void *refCon, io_service_t service, natural_t messageType, void *messageArgument)
-{
+AndroidInterfaceNotify(void *refCon, io_service_t service, natural_t messageType, void *messageArgument) {
     usb_handle *handle = (usb_handle *)refCon;
 
     if (messageType == kIOMessageServiceIsTerminated) {
@@ -301,8 +297,7 @@ AndroidInterfaceNotify(void *refCon, io_service_t service, natural_t messageType
 //* TODO: simplify this further since we only register to get ADB interface
 //* subclass+protocol events
 static usb_handle*
-CheckInterface(IOUSBInterfaceInterface **interface, UInt16 vendor, UInt16 product)
-{
+CheckInterface(IOUSBInterfaceInterface **interface, UInt16 vendor, UInt16 product) {
     usb_handle*                 handle = NULL;
     IOReturn                    kr;
     UInt8  interfaceNumEndpoints, interfaceClass, interfaceSubClass, interfaceProtocol;
@@ -328,14 +323,14 @@ CheckInterface(IOUSBInterfaceInterface **interface, UInt16 vendor, UInt16 produc
     if ((*interface)->GetInterfaceClass(interface, &interfaceClass) != kIOReturnSuccess ||
             (*interface)->GetInterfaceSubClass(interface, &interfaceSubClass) != kIOReturnSuccess ||
             (*interface)->GetInterfaceProtocol(interface, &interfaceProtocol) != kIOReturnSuccess) {
-            DBG("ERR: Unable to get interface class, subclass and protocol\n");
-            goto err_get_interface_class;
+        DBG("ERR: Unable to get interface class, subclass and protocol\n");
+        goto err_get_interface_class;
     }
 
     //* check to make sure interface class, subclass and protocol match ADB
     //* avoid opening mass storage endpoints
     if (!is_adb_interface(vendor, product, interfaceClass,
-                interfaceSubClass, interfaceProtocol))
+                          interfaceSubClass, interfaceProtocol))
         goto err_bad_adb_interface;
 
     handle = calloc(1, sizeof(usb_handle));
@@ -350,7 +345,7 @@ CheckInterface(IOUSBInterfaceInterface **interface, UInt16 vendor, UInt16 produc
         UInt8   direction;
 
         kr = (*interface)->GetPipeProperties(interface, endpoint, &direction,
-                &number, &transferType, &maxPacketSize, &interval);
+                                             &number, &transferType, &maxPacketSize, &interval);
 
         if (kIOReturnSuccess == kr) {
             if (kUSBBulk != transferType)
@@ -382,8 +377,7 @@ err_get_num_ep:
 }
 
 
-void* RunLoopThread(void* unused)
-{
+void* RunLoopThread(void* unused) {
     unsigned i;
 
     InitUSB();
@@ -404,19 +398,17 @@ void* RunLoopThread(void* unused)
     IONotificationPortDestroy(notificationPort);
 
     DBG("RunLoopThread done\n");
-    return NULL;    
+    return NULL;
 }
 
 
 static int initialized = 0;
-void usb_init()
-{
-    if (!initialized)
-    {
+void usb_init() {
+    if (!initialized) {
         adb_thread_t    tid;
 
         notificationIterators = (io_iterator_t*)malloc(
-            vendorIdCount * sizeof(io_iterator_t));
+                                    vendorIdCount * sizeof(io_iterator_t));
 
         adb_mutex_init(&start_lock, NULL);
         adb_cond_init(&start_cond, NULL);
@@ -436,8 +428,7 @@ void usb_init()
     }
 }
 
-void usb_cleanup()
-{
+void usb_cleanup() {
     DBG("usb_cleanup\n");
     close_usb_devices();
     if (currentRunLoop)
@@ -449,8 +440,7 @@ void usb_cleanup()
     }
 }
 
-int usb_write(usb_handle *handle, const void *buf, int len)
-{
+int usb_write(usb_handle *handle, const void *buf, int len) {
     IOReturn    result;
 
     if (!len)
@@ -471,14 +461,14 @@ int usb_write(usb_handle *handle, const void *buf, int len)
 
     result =
         (*handle->interface)->WritePipe(
-                              handle->interface, handle->bulkOut, (void *)buf, len);
+            handle->interface, handle->bulkOut, (void *)buf, len);
 
     if ((result == 0) && (handle->zero_mask)) {
         /* we need 0-markers and our transfer */
         if(!(len & handle->zero_mask)) {
             result =
                 (*handle->interface)->WritePipe(
-                        handle->interface, handle->bulkOut, (void *)buf, 0);
+                    handle->interface, handle->bulkOut, (void *)buf, 0);
         }
     }
 
@@ -489,8 +479,7 @@ int usb_write(usb_handle *handle, const void *buf, int len)
     return -1;
 }
 
-int usb_read(usb_handle *handle, void *buf, int len)
-{
+int usb_read(usb_handle *handle, void *buf, int len) {
     IOReturn result;
     UInt32  numBytes = len;
 
@@ -529,19 +518,16 @@ int usb_read(usb_handle *handle, void *buf, int len)
     return -1;
 }
 
-int usb_close(usb_handle *handle)
-{
+int usb_close(usb_handle *handle) {
     return 0;
 }
 
-void usb_kick(usb_handle *handle)
-{
+void usb_kick(usb_handle *handle) {
     /* release the interface */
     if (!handle)
         return;
 
-    if (handle->interface)
-    {
+    if (handle->interface) {
         (*handle->interface)->USBInterfaceClose(handle->interface);
         (*handle->interface)->Release(handle->interface);
         handle->interface = 0;

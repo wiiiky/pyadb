@@ -57,8 +57,7 @@ struct amessage {
     unsigned magic;         /* command ^ 0xffffffff             */
 };
 
-struct apacket
-{
+struct apacket {
     apacket *next;
 
     unsigned len;
@@ -73,69 +72,69 @@ struct apacket
 ** remote asocket is bound to the protocol engine.
 */
 struct asocket {
-        /* chain pointers for the local/remote list of
-        ** asockets that this asocket lives in
-        */
+    /* chain pointers for the local/remote list of
+    ** asockets that this asocket lives in
+    */
     asocket *next;
     asocket *prev;
 
-        /* the unique identifier for this asocket
-        */
+    /* the unique identifier for this asocket
+    */
     unsigned id;
 
-        /* flag: set when the socket's peer has closed
-        ** but packets are still queued for delivery
-        */
+    /* flag: set when the socket's peer has closed
+    ** but packets are still queued for delivery
+    */
     int    closing;
 
-        /* flag: quit adbd when both ends close the
-        ** local service socket
-        */
+    /* flag: quit adbd when both ends close the
+    ** local service socket
+    */
     int    exit_on_close;
 
-        /* the asocket we are connected to
-        */
+    /* the asocket we are connected to
+    */
 
     asocket *peer;
 
-        /* For local asockets, the fde is used to bind
-        ** us to our fd event system.  For remote asockets
-        ** these fields are not used.
-        */
+    /* For local asockets, the fde is used to bind
+    ** us to our fd event system.  For remote asockets
+    ** these fields are not used.
+    */
     fdevent fde;
     int fd;
 
-        /* queue of apackets waiting to be written
-        */
+    /* queue of apackets waiting to be written
+    */
     apacket *pkt_first;
     apacket *pkt_last;
 
-        /* enqueue is called by our peer when it has data
-        ** for us.  It should return 0 if we can accept more
-        ** data or 1 if not.  If we return 1, we must call
-        ** peer->ready() when we once again are ready to
-        ** receive data.
-        */
+    /* enqueue is called by our peer when it has data
+    ** for us.  It should return 0 if we can accept more
+    ** data or 1 if not.  If we return 1, we must call
+    ** peer->ready() when we once again are ready to
+    ** receive data.
+    */
     int (*enqueue)(asocket *s, apacket *pkt);
 
-        /* ready is called by the peer when it is ready for
-        ** us to send data via enqueue again
-        */
+    /* ready is called by the peer when it is ready for
+    ** us to send data via enqueue again
+    */
     void (*ready)(asocket *s);
 
-        /* shutdown is called by the peer before it goes away.
-        ** the socket should not do any further calls on its peer.
-        ** Always followed by a call to close. Optional, i.e. can be NULL.
-        */
+    /* shutdown is called by the peer before it goes away.
+    ** the socket should not do any further calls on its peer.
+    ** Always followed by a call to close. Optional, i.e. can be NULL.
+    */
     void (*shutdown)(asocket *s);
 
-        /* close is called by the peer when it has gone away.
-        ** we are not allowed to make any further calls on the
-        ** peer once our close method is called.
-        */
+    /* close is called by the peer when it has gone away.
+    ** we are not allowed to make any further calls on the
+    ** peer once our close method is called.
+    */
     void (*close)(asocket *s);
 
-        /* A socket is bound to atransport */
+    /* A socket is bound to atransport */
     atransport *transport;
 };
 
@@ -145,8 +144,7 @@ struct asocket {
 ** this should be used to cleanup objects that depend on the
 ** transport (e.g. remote sockets, listeners, etc...)
 */
-struct  adisconnect
-{
+struct  adisconnect {
     void        (*func)(void*  opaque, atransport*  t);
     void*         opaque;
     adisconnect*  next;
@@ -164,16 +162,15 @@ struct  adisconnect
 ** connect to a service implemented within the ADB server itself.
 */
 typedef enum transport_type {
-        kTransportUsb,
-        kTransportLocal,
-        kTransportAny,
-        kTransportHost,
+    kTransportUsb,
+    kTransportLocal,
+    kTransportAny,
+    kTransportHost,
 } transport_type;
 
 #define TOKEN_SIZE 20
 
-struct atransport
-{
+struct atransport {
     atransport *next;
     atransport *prev;
 
@@ -191,11 +188,11 @@ struct atransport
     int online;
     transport_type type;
 
-        /* usb handle or socket fd as needed */
+    /* usb handle or socket fd as needed */
     usb_handle *usb;
     int sfd;
 
-        /* used to identify transports for clients */
+    /* used to identify transports for clients */
     char *serial;
     char *product;
     char *model;
@@ -203,7 +200,7 @@ struct atransport
     char *devpath;
     int adb_port; // Use for emulators (local transport)
 
-        /* a list of adisconnect callbacks called when the transport is kicked */
+    /* a list of adisconnect callbacks called when the transport is kicked */
     int          kicked;
     adisconnect  disconnects;
 
@@ -223,8 +220,7 @@ struct atransport
 ** determine what exact service to connect to on the far
 ** side.
 */
-struct alistener
-{
+struct alistener {
     alistener *next;
     alistener *prev;
 
