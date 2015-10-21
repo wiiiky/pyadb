@@ -15,7 +15,9 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 #include "wrapper.h"
+#include "util.h"
 #include "adb_client.h"
+#include <sys/wait.h>
 
 /*
  * 启动adb守护进程
@@ -33,6 +35,10 @@ int start_server(int is_daemon, unsigned short port) {
         return 0;
     } else if(pid==0) {
         /* 子进程执行adb_main函数 */
+        setproctitle("adbd");
+        if(daemon(0, 1)) {
+            _exit(1);
+        }
         close(pfds[0]);
         dup2(pfds[1], 2);
         dup2(pfds[0], 1);
@@ -44,6 +50,7 @@ int start_server(int is_daemon, unsigned short port) {
     char buf[16];
     int n = read(pfds[0], buf, sizeof(buf));
     close(pfds[0]);
+    waitpid(pid, NULL, WNOHANG);
     return strncmp(buf, "OK", 2) == 0;
 }
 

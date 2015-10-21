@@ -1,5 +1,7 @@
 SRCS+= pyadb.c
 SRCS+= wrapper.c
+SRCS+= util.c
+
 SRCS+= adb.c
 SRCS+= adb_client.c
 SRCS+= adb_auth_host.c
@@ -37,6 +39,7 @@ SRCS+= libmincrypt/p256.c
 SRCS+= libmincrypt/p256_ec.c
 SRCS+= libmincrypt/p256_ecdsa.c
 
+CPPFLAGS+= -DHAVE_SYS_PRCTL_H
 CPPFLAGS+= -DADB_HOST=1
 CPPFLAGS+= -DHAVE_FORKEXEC=1
 CPPFLAGS+= -DHAVE_SYMLINKS
