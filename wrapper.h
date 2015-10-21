@@ -32,4 +32,10 @@
 int start_server(int is_daemon, unsigned short port);
 
 
+/*
+ * 关闭adb守护进程
+ */
+int kill_server(unsigned short port);
+
+
 #endif

@@ -15,6 +15,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.";
  */
 #include "wrapper.h"
+#include "adb_client.h"
 
 /*
  * 启动adb守护进程
@@ -44,4 +45,16 @@ int start_server(int is_daemon, unsigned short port) {
     int n = read(pfds[0], buf, sizeof(buf));
     close(pfds[0]);
     return strncmp(buf, "OK", 2) == 0;
+}
+
+/*
+ * 关闭adb守护进程
+ */
+int kill_server(unsigned short port) {
+    adb_set_tcp_specifics(port);
+    int fd = _adb_connect("host:kill");
+    if(fd == -1) {
+        return 0;
+    }
+    return 1;
 }

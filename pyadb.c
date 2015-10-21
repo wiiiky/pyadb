@@ -30,10 +30,26 @@ static PyObject *py_start_server(PyObject *self, PyObject *args, PyObject *keywd
     Py_RETURN_TRUE;
 }
 
+static PyObject *py_kill_server(PyObject *self, PyObject *args, PyObject *keywds) {
+    unsigned short port = DEFAULT_ADB_PORT;
+    static char *kwlist[] = {"port", NULL};
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "|H", kwlist, &port)) {
+        return NULL;
+    }
+    if(!kill_server(port)) {
+        Py_RETURN_FALSE;
+    }
+    Py_RETURN_TRUE;
+}
+
 static PyMethodDef ADBMethods[] = {
     {
         "start_server", (PyCFunction)py_start_server, METH_VARARGS | METH_KEYWORDS,
         "启动adb守护进程"
+    },
+    {
+        "kill_server", (PyCFunction)py_kill_server, METH_VARARGS | METH_KEYWORDS,
+        "关闭adb守护进程"
     },
     {NULL, NULL, 0, NULL}
 };
