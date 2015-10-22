@@ -31,6 +31,8 @@
 #include "adb.h"
 #include "adb_auth.h"
 
+#include "util.h"
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 #if !ADB_HOST
@@ -1143,58 +1145,86 @@ int launch_server(int server_port) {
         }
     }
 #elif defined(HAVE_FORKEXEC)
-    char    path[PATH_MAX];
-    int     fd[2];
-
-    // set up a pipe so the child can tell us when it is ready.
-    // fd[0] will be parent's end, and fd[1] will get mapped to stderr in the child.
-    if (pipe(fd)) {
-        fprintf(stderr, "pipe failed in launch_server, errno: %d\n", errno);
-        return -1;
+    int pfds[2];
+    if(pipe(pfds)) { /* 创建管道失败 */
+        return 0;
     }
-    get_my_path(path, PATH_MAX);
     pid_t pid = fork();
-    if(pid < 0) return -1;
-
-    if (pid == 0) {
-        // child side of the fork
-
-        // redirect stderr to the pipe
-        // we use stderr instead of stdout due to stdout's buffering behavior.
-        adb_close(fd[0]);
-        dup2(fd[1], STDERR_FILENO);
-        adb_close(fd[1]);
-
-        char str_port[30];
-        snprintf(str_port, sizeof(str_port), "%d",  server_port);
-        // child process
-        int result = execl(path, "adb", "-P", str_port, "fork-server", "server", NULL);
-        // this should not return
-        fprintf(stderr, "OOPS! execl returned %d, errno: %d\n", result, errno);
-    } else  {
-        // parent side of the fork
-
-        char  temp[3];
-
-        temp[0] = 'A';
-        temp[1] = 'B';
-        temp[2] = 'C';
-        // wait for the "OK\n" message
-        adb_close(fd[1]);
-        int ret = adb_read(fd[0], temp, 3);
-        int saved_errno = errno;
-        adb_close(fd[0]);
-        if (ret < 0) {
-            fprintf(stderr, "could not read ok from ADB Server, errno = %d\n", saved_errno);
-            return -1;
+    if(pid<0) {
+        adb_close(pfds[0]);
+        adb_close(pfds[1]);
+        return 0;
+    } else if(pid==0) {
+        /* 子进程执行adb_main函数 */
+        setproctitle("adbd");
+        if(daemon(0, 1)) {
+            _exit(1);
         }
-        if (ret != 3 || temp[0] != 'O' || temp[1] != 'K' || temp[2] != '\n') {
-            fprintf(stderr, "ADB server didn't ACK\n" );
-            return -1;
-        }
-
-        setsid();
+        adb_close(pfds[0]);
+        dup2(pfds[1], 2);
+        dup2(pfds[0], 1);
+        int r = adb_main(1, server_port);
+        adb_close(pfds[1]);
+        _exit(r);
     }
+    adb_close(pfds[1]);
+    char buf[3];
+    int n = adb_read(pfds[0], buf, sizeof(buf));
+    adb_close(pfds[0]);
+    waitpid(pid, NULL, WNOHANG);
+    return !(n==3 && strncmp(buf, "OK", 2) == 0);
+    // char    path[PATH_MAX];
+    // int     fd[2];
+
+    // // set up a pipe so the child can tell us when it is ready.
+    // // fd[0] will be parent's end, and fd[1] will get mapped to stderr in the child.
+    // if (pipe(fd)) {
+    //     fprintf(stderr, "pipe failed in launch_server, errno: %d\n", errno);
+    //     return -1;
+    // }
+    // get_my_path(path, PATH_MAX);
+    // pid_t pid = fork();
+    // if(pid < 0) return -1;
+
+    // if (pid == 0) {
+    //     // child side of the fork
+
+    //     // redirect stderr to the pipe
+    //     // we use stderr instead of stdout due to stdout's buffering behavior.
+    //     adb_close(fd[0]);
+    //     dup2(fd[1], STDERR_FILENO);
+    //     adb_close(fd[1]);
+
+    //     char str_port[30];
+    //     snprintf(str_port, sizeof(str_port), "%d",  server_port);
+    //     // child process
+    //     int result = execl(path, "adb", "-P", str_port, "fork-server", "server", NULL);
+    //     // this should not return
+    //     fprintf(stderr, "OOPS! execl returned %d, errno: %d\n", result, errno);
+    // } else  {
+    //     // parent side of the fork
+
+    //     char  temp[3];
+
+    //     temp[0] = 'A';
+    //     temp[1] = 'B';
+    //     temp[2] = 'C';
+    //     // wait for the "OK\n" message
+    //     adb_close(fd[1]);
+    //     int ret = adb_read(fd[0], temp, 3);
+    //     int saved_errno = errno;
+    //     adb_close(fd[0]);
+    //     if (ret < 0) {
+    //         fprintf(stderr, "could not read ok from ADB Server, errno = %d\n", saved_errno);
+    //         return -1;
+    //     }
+    //     if (ret != 3 || temp[0] != 'O' || temp[1] != 'K' || temp[2] != '\n') {
+    //         fprintf(stderr, "ADB server didn't ACK\n" );
+    //         return -1;
+    //     }
+
+    //     setsid();
+    // }
 #else
 #error "cannot implement background server start on this platform"
 #endif

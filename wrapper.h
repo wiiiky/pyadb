@@ -29,13 +29,16 @@
  * 启动adb守护进程
  * 返回1表示成功，0表示失败
  */
-int start_server(int is_daemon, unsigned short port);
+int start_server(unsigned short port);
 
 
 /*
  * 关闭adb守护进程
  */
 int kill_server(unsigned short port);
+
+/* 安装apk，r表示重新安装 */
+int install_apk(const char *path, int r);
 
 
 #endif

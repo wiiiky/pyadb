@@ -24,7 +24,7 @@ static PyObject *py_start_server(PyObject *self, PyObject *args, PyObject *keywd
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "|H", kwlist, &port)) {
         return NULL;
     }
-    if(!start_server(1, port)) {
+    if(!start_server(port)) {
         Py_RETURN_FALSE;
     }
     Py_RETURN_TRUE;
@@ -42,6 +42,19 @@ static PyObject *py_kill_server(PyObject *self, PyObject *args, PyObject *keywds
     Py_RETURN_TRUE;
 }
 
+static PyObject *py_install_apk(PyObject *self, PyObject *args, PyObject *keywds) {
+    const char *path=NULL;
+    int reinstall=0;
+    static char *kwlist[] = {"path", "reinstall", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, keywds, "s|p", kwlist, &path, &reinstall)) {
+        return NULL;
+    }
+    if(!install_apk(path, reinstall)) {
+        Py_RETURN_FALSE;
+    }
+    Py_RETURN_TRUE;
+}
+
 static PyMethodDef ADBMethods[] = {
     {
         "start_server", (PyCFunction)py_start_server, METH_VARARGS | METH_KEYWORDS,
@@ -50,6 +63,10 @@ static PyMethodDef ADBMethods[] = {
     {
         "kill_server", (PyCFunction)py_kill_server, METH_VARARGS | METH_KEYWORDS,
         "关闭adb守护进程"
+    },
+    {
+        "install_apk", (PyCFunction)py_install_apk, METH_VARARGS | METH_KEYWORDS,
+        "安装APK"
     },
     {NULL, NULL, 0, NULL}
 };

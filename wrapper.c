@@ -18,40 +18,16 @@
 #include "util.h"
 #include "adb_client.h"
 #include <sys/wait.h>
+#include <stdlib.h>
+
+int install_app(transport_type transport, char* serial, int argc, char** argv);
 
 /*
  * 启动adb守护进程
  * 返回1表示成功，0表示失败
  */
-int start_server(int is_daemon, unsigned short port) {
-    int pfds[2];
-    if(pipe(pfds)) { /* 创建管道失败 */
-        return 0;
-    }
-    pid_t pid = fork();
-    if(pid<0) {
-        close(pfds[0]);
-        close(pfds[1]);
-        return 0;
-    } else if(pid==0) {
-        /* 子进程执行adb_main函数 */
-        setproctitle("adbd");
-        if(daemon(0, 1)) {
-            _exit(1);
-        }
-        close(pfds[0]);
-        dup2(pfds[1], 2);
-        dup2(pfds[0], 1);
-        int r = adb_main(is_daemon, port);
-        close(pfds[1]);
-        _exit(r);
-    }
-    close(pfds[1]);
-    char buf[16];
-    int n = read(pfds[0], buf, sizeof(buf));
-    close(pfds[0]);
-    waitpid(pid, NULL, WNOHANG);
-    return strncmp(buf, "OK", 2) == 0;
+int start_server(unsigned short port) {
+    return launch_server(port) == 0;
 }
 
 /*
@@ -64,4 +40,19 @@ int kill_server(unsigned short port) {
         return 0;
     }
     return 1;
+}
+
+/* 安装apk，r表示重新安装 */
+int install_apk(const char *path, int r) {
+    int argc = 2;
+    char *argv[3] = {
+        "install",
+        (char*)path,
+    };
+    if(r) {
+        argc = 3;
+        argv[1] = "-r";
+        argv[2] = (char*)path;
+    }
+    return install_app(kTransportUsb, NULL, argc, argv) == 0;
 }
