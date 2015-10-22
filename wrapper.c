@@ -19,6 +19,7 @@
 #include "adb_client.h"
 #include <sys/wait.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 int install_app(transport_type transport, char* serial, int argc, char** argv);
 
@@ -55,4 +56,20 @@ int install_apk(const char *path, int r) {
         argv[2] = (char*)path;
     }
     return install_app(kTransportUsb, NULL, argc, argv) == 0;
+}
+
+int forward_tcp(unsigned short local, unsigned short remote, int rebind) {
+    char buf[128];
+    snprintf(buf, sizeof(buf), "host-usb:forward%s:tcp:%u;tcp:%u",rebind?"":":norebind", local,remote);
+    return adb_command(buf)==0;
+}
+
+int forward_remove_tcp(unsigned short local) {
+    char buf[128];
+    snprintf(buf, sizeof(buf), "host-usb:killforward:tcp:%u",local);
+    return adb_command(buf)==0;
+}
+
+char *forward_list(void) {
+    return adb_query("host-usb:list-forward");
 }

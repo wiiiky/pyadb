@@ -55,6 +55,36 @@ static PyObject *py_install_apk(PyObject *self, PyObject *args, PyObject *keywds
     Py_RETURN_TRUE;
 }
 
+static PyObject *py_forward_tcp(PyObject *self, PyObject *args, PyObject *keywds) {
+    unsigned short local;
+    unsigned short remote;
+    int rebind=0;
+    static char *kwlist[] = {"local","remote","rebind", NULL};
+    if(!PyArg_ParseTupleAndKeywords(args, keywds, "HH|p", kwlist, &local, &remote, &rebind)) {
+        return NULL;
+    }
+    if(!forward_tcp(local, remote, rebind)) {
+        Py_RETURN_FALSE;
+    }
+    Py_RETURN_TRUE;
+}
+
+static PyObject *py_forward_remove_tcp(PyObject *self, PyObject *args) {
+    unsigned short local;
+    if(!PyArg_ParseTuple(args, "H", &local)) {
+        return NULL;
+    }
+    if(!forward_remove_tcp(local)) {
+        Py_RETURN_FALSE;
+    }
+    Py_RETURN_TRUE;
+}
+
+static PyObject *py_forward_list(PyObject *self) {
+    char *list = forward_list();
+    return Py_BuildValue("s", list);
+}
+
 static PyMethodDef ADBMethods[] = {
     {
         "start_server", (PyCFunction)py_start_server, METH_VARARGS | METH_KEYWORDS,
@@ -67,6 +97,18 @@ static PyMethodDef ADBMethods[] = {
     {
         "install_apk", (PyCFunction)py_install_apk, METH_VARARGS | METH_KEYWORDS,
         "安装APK"
+    },
+    {
+        "forward_tcp", (PyCFunction)py_forward_tcp, METH_VARARGS | METH_KEYWORDS,
+        "重定向TCP端口"
+    },
+    {
+        "forward_remove_tcp", (PyCFunction)py_forward_remove_tcp, METH_VARARGS,
+        "删除TCP端口重定向"
+    },
+    {
+        "forward_list", (PyCFunction)py_forward_list, METH_VARARGS,
+        "返回端口重定向的列表"
     },
     {NULL, NULL, 0, NULL}
 };
