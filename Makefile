@@ -52,7 +52,7 @@ CPPFLAGS+= -I.
 CPPFLAGS+= -Iinclude
 CPPFLAGS+= `pkg-config --cflags python3`
 
-LIBS= -lrt -lpthread -lz -lcrypto
+LIBS= -lrt -lpthread -lz -lcrypto -lssl
 
 CC= $(TOOLCHAIN)gcc
 LD= $(TOOLCHAIN)gcc
@@ -61,7 +61,7 @@ LD= $(TOOLCHAIN)gcc
 all: pyadb.so
 
 pyadb.so: $(SRCS)
-	$(LD) -o $@ $(CPPFLAGS) $(LIBS) $(SRCS) -shared -fPIC -lssl -lcrypto
+	$(LD) -o $@ $(CPPFLAGS) $(LIBS) $(SRCS) -shared -fPIC
 
 clean:
 	-astyle --style=google -n *.c *.h 2>&1 1>/dev/null
