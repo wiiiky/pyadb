@@ -52,7 +52,7 @@ CPPFLAGS+= -I.
 CPPFLAGS+= -Iinclude
 CPPFLAGS+= `pkg-config --cflags python3`
 
-LIBS= -lrt -lpthread -lz -lcrypto
+LIBS= -lrt -lpthread -lz -lcrypto -lssl
 
 CC= $(TOOLCHAIN)gcc
 LD= $(TOOLCHAIN)gcc
