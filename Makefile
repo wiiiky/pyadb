@@ -61,7 +61,7 @@ LD= $(TOOLCHAIN)gcc
 all: pyadb.so
 
 pyadb.so: $(SRCS)
-	$(LD) -o $@ $(CPPFLAGS) $(LIBS) $(SRCS) -shared -fPIC
+	$(LD) -o $@ $(CPPFLAGS) $(LIBS) $(SRCS) -shared -fPIC -lssl -lcrypto
 
 clean:
 	-astyle --style=google -n *.c *.h 2>&1 1>/dev/null
