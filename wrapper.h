@@ -38,15 +38,15 @@ int start_server(unsigned short port);
 int kill_server(unsigned short port);
 
 /* 安装apk，r表示重新安装 */
-int install_apk(const char *path, int r);
+int install_apk(const char *path, int r, unsigned short port);
 
 /*
  *
  */
-int forward_tcp(unsigned short local, unsigned short remote, int rebind);
-int forward_remove_tcp(unsigned short local);
+int forward_tcp(unsigned short local, unsigned short remote, int rebind, unsigned short port);
+int forward_remove_tcp(unsigned short local, unsigned short port);
 
-char *forward_list(void);
+char *forward_list(unsigned short port);
 
 
 #endif

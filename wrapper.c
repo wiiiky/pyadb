@@ -36,15 +36,12 @@ int start_server(unsigned short port) {
  */
 int kill_server(unsigned short port) {
     adb_set_tcp_specifics(port);
-    int fd = _adb_connect("host:kill");
-    if(fd == -1) {
-        return 0;
-    }
-    return 1;
+    return _adb_connect("host:kill") != -1;
 }
 
 /* 安装apk，r表示重新安装 */
-int install_apk(const char *path, int r) {
+int install_apk(const char *path, int r, unsigned short port) {
+    adb_set_tcp_specifics(port);
     int argc = 2;
     char *argv[3] = {
         "install",
@@ -58,18 +55,21 @@ int install_apk(const char *path, int r) {
     return install_app(kTransportUsb, NULL, argc, argv) == 0;
 }
 
-int forward_tcp(unsigned short local, unsigned short remote, int rebind) {
+int forward_tcp(unsigned short local, unsigned short remote, int rebind, unsigned short port) {
+    adb_set_tcp_specifics(port);
     char buf[128];
     snprintf(buf, sizeof(buf), "host-usb:forward%s:tcp:%u;tcp:%u",rebind?"":":norebind", local,remote);
     return adb_command(buf)==0;
 }
 
-int forward_remove_tcp(unsigned short local) {
+int forward_remove_tcp(unsigned short local, unsigned short port) {
+    adb_set_tcp_specifics(port);
     char buf[128];
     snprintf(buf, sizeof(buf), "host-usb:killforward:tcp:%u",local);
     return adb_command(buf)==0;
 }
 
-char *forward_list(void) {
+char *forward_list(unsigned short port) {
+    adb_set_tcp_specifics(port);
     return adb_query("host-usb:list-forward");
 }
