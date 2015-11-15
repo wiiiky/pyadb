@@ -45,7 +45,6 @@ CPPFLAGS+= -DHAVE_FORKEXEC=1
 CPPFLAGS+= -DHAVE_SYMLINKS
 CPPFLAGS+= -DHAVE_TERMIO_H
 CPPFLAGS+= -D_GNU_SOURCE
-CPPFLAGS+= -D_XOPEN_SOURCE
 CPPFLAGS+= -D_FILE_OFFSET_BITS=64
 CPPFLAGS+= -DHAVE_OFF64_T
 CPPFLAGS+= -I.
@@ -65,4 +64,4 @@ pyadb.so: $(SRCS)
 
 clean:
 	-astyle --style=google -n *.c *.h 2>&1 1>/dev/null
-	rm -rf pyadb.so
+	-rm -rf pyadb.so
