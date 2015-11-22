@@ -410,4 +410,18 @@ typedef enum {
 int sendfailmsg(int fd, const char *reason);
 int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s);
 
+
+// error/status codes for install_listener.
+typedef enum {
+    INSTALL_STATUS_OK = 0,
+    INSTALL_STATUS_INTERNAL_ERROR = -1,
+    INSTALL_STATUS_CANNOT_BIND = -2,
+    INSTALL_STATUS_CANNOT_REBIND = -3,
+} install_status_t;
+
+install_status_t install_listener(const char *local_name,
+        const char *connect_to,
+        atransport* transport,
+        int no_rebind);
+
 #endif

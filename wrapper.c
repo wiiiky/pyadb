@@ -17,9 +17,17 @@
 #include "wrapper.h"
 #include "util.h"
 #include "adb_client.h"
+#include "adb_auth.h"
+#include "usb_vendors.h"
+// #include "adb_trace.h"
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string.h>
+#include <pthread.h>
+
+
+
 
 int install_app(transport_type transport, char* serial, int argc, char** argv);
 
@@ -72,4 +80,42 @@ int forward_remove_tcp(unsigned short local, unsigned short port) {
 char *forward_list(unsigned short port) {
     adb_set_tcp_specifics(port);
     return adb_query("host-usb:list-forward");
+}
+
+
+/*********************************************
+ * ADBD
+ ********************************************/
+
+static void *fdevent_loop_thread(void *data){
+    fdevent_loop();
+}
+
+int adb_init(void){
+    atexit(usb_cleanup);
+    signal(SIGPIPE, SIG_IGN);
+
+    init_transport_registration();
+    usb_vendors_init();
+    usb_init();
+    local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
+    adb_auth_init();
+
+    char local_name[30];
+    build_local_name(local_name, sizeof(local_name), 5545);
+    if(install_listener(local_name, "*smartsocket*", NULL, 0)) {
+        return 0;
+    }
+    pthread_t tid;
+    if(pthread_create(&tid, NULL, fdevent_loop_thread,NULL)){
+        return 0;
+    }
+
+
+    return 1;
+}
+
+void adb_devices(char *buffer, unsigned int size, int use_long){
+    memset(buffer, 0, size);
+    list_transports(buffer, size, use_long);
 }

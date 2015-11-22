@@ -886,8 +886,9 @@ static void add_qual(char **buf, size_t *buf_size,
     size_t len;
     int prefix_len;
 
-    if (!buf || !*buf || !buf_size || !*buf_size || !qual || !*qual)
+    if (!buf || !*buf || !buf_size || !*buf_size || !qual || !*qual){
         return;
+    }
 
     len = snprintf(*buf, *buf_size, "%s%n%s", prefix, &prefix_len, qual);
 
@@ -925,6 +926,7 @@ static size_t format_transport(atransport *t, char *buf, size_t bufsize,
 
         len = snprintf(buf, remaining, "\n");
         remaining -= len;
+
 
         return bufsize - remaining;
     }

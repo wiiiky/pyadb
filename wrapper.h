@@ -25,6 +25,10 @@
 #include "adb.h"
 
 
+int adb_init(void);
+void adb_devices(char *buffer, unsigned int size,int use_long);
+
+
 /*
  * 启动adb守护进程
  * 返回1表示成功，0表示失败
