@@ -17,8 +17,13 @@
 #include <Python.h>
 #include "wrapper.h"
 
-static PyObject *pdb_init(PyObject *self) {
-    if(adb_init()){
+static PyObject *pdb_init(PyObject *self, PyObject *args, PyObject *keywds) {
+    static char *kwlist[] = {"port", NULL};
+    int port=5544;
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "|H", kwlist, &port)) {
+        return NULL;
+    }
+    if(adb_init(port)){
         Py_RETURN_TRUE;
     }
     Py_RETURN_FALSE;
@@ -39,7 +44,7 @@ static PyObject *pdb_devices(PyObject *self, PyObject *args, PyObject *keywds){
 
 static PyMethodDef PDBMethods[] = {
     {
-        "pdb_init", (PyCFunction)pdb_init, METH_NOARGS,
+        "pdb_init", (PyCFunction)pdb_init, METH_VARARGS | METH_KEYWORDS,
         "初始化adb，这会创建两个线程，一个线程监听USB设备，一个线程作为ADB消息主循环"
     },
     {

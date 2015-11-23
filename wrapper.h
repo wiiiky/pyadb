@@ -21,11 +21,11 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <string.h>
-#include <fdevent.h>
+#include "fdevent.h"
 #include "adb.h"
 
 
-int adb_init(void);
+int adb_init(unsigned short port);
 void adb_devices(char *buffer, unsigned int size,int use_long);
 
 

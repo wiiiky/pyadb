@@ -84,16 +84,20 @@ char *forward_list(unsigned short port) {
 
 
 /*********************************************
- * ADBD
+ * ADB
  ********************************************/
+
+static unsigned short adb_port = 5544;
 
 static void *fdevent_loop_thread(void *data){
     fdevent_loop();
 }
 
-int adb_init(void){
+int adb_init(unsigned short port){
     atexit(usb_cleanup);
     signal(SIGPIPE, SIG_IGN);
+    
+    adb_port = port;
 
     init_transport_registration();
     usb_vendors_init();
@@ -102,7 +106,7 @@ int adb_init(void){
     adb_auth_init();
 
     char local_name[30];
-    build_local_name(local_name, sizeof(local_name), 5545);
+    build_local_name(local_name, sizeof(local_name), adb_port);
     if(install_listener(local_name, "*smartsocket*", NULL, 0)) {
         return 0;
     }
