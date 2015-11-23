@@ -1,4 +1,4 @@
-SRCS+= pyadb.c
+SRCS+= pdb.c
 SRCS+= wrapper.c
 SRCS+= util.c
 
@@ -57,11 +57,11 @@ CC= $(TOOLCHAIN)gcc
 LD= $(TOOLCHAIN)gcc
 
 
-all: pyadb.so
+all: pdb.so
 
-pyadb.so: $(SRCS)
+pdb.so: $(SRCS)
 	$(LD) -o $@ $(CPPFLAGS) $(SRCS) -shared -fPIC $(LIBS)
 
 clean:
 	-astyle --style=google -n *.c *.h 2>&1 1>/dev/null
-	-rm -rf pyadb.so
+	-rm -rf pdb.so

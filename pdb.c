@@ -23,13 +23,13 @@ static PyObject *pdb_init(PyObject *self, PyObject *args, PyObject *keywds) {
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "|H", kwlist, &port)) {
         return NULL;
     }
-    if(adb_init(port)){
+    if(adb_init(port)) {
         Py_RETURN_TRUE;
     }
     Py_RETURN_FALSE;
 }
 
-static PyObject *pdb_devices(PyObject *self, PyObject *args, PyObject *keywds){
+static PyObject *pdb_devices(PyObject *self, PyObject *args, PyObject *keywds) {
     static char *kwlist[] = {"use_long", NULL};
     int use_long=0;
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "|p", kwlist, &use_long)) {
@@ -40,6 +40,25 @@ static PyObject *pdb_devices(PyObject *self, PyObject *args, PyObject *keywds){
     return Py_BuildValue("s", buf);
 }
 
+static PyObject *pdb_list_forward(PyObject *self) {
+    char buf[4096];
+    adb_list_forward(buf, sizeof(buf));
+    return Py_BuildValue("s", buf);
+}
+
+static PyObject *pdb_create_forward(PyObject *self, PyObject *args, PyObject *keywds) {
+    static char *kwlist[] = {"local", "remote","ttype", "serial", "no_rebind", NULL};
+    unsigned short local, remote;
+    int ttype=kTransportAny;
+    char *serial=NULL;
+    int no_rebind=0;
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "HH|isp", kwlist,
+                                     &local, &remote,&ttype, &serial,
+                                     &no_rebind)) {
+        return NULL;
+    }
+    return Py_BuildValue("s", adb_create_forward(local, remote, ttype, serial, no_rebind));
+}
 
 
 static PyMethodDef PDBMethods[] = {
@@ -50,6 +69,14 @@ static PyMethodDef PDBMethods[] = {
     {
         "pdb_devices", (PyCFunction)pdb_devices, METH_VARARGS | METH_KEYWORDS,
         "返回当前连接的设备"
+    },
+    {
+        "pdb_list_forward", (PyCFunction)pdb_list_forward, METH_NOARGS,
+        ""
+    },
+    {
+        "pdb_create_forward", (PyCFunction)pdb_create_forward, METH_VARARGS |METH_KEYWORDS,
+        ""
     },
     {NULL, NULL, 0, NULL}
 };
@@ -63,8 +90,12 @@ static struct PyModuleDef PDBModule = {
     PDBMethods
 };
 
-PyMODINIT_FUNC
-PyInit_pdb(void) {
-    return PyModule_Create(&PDBModule);
+PyMODINIT_FUNC PyInit_pdb(void) {
+    PyObject *mod = PyModule_Create(&PDBModule);
+    PyObject_SetAttrString(mod, "kTransportAny", Py_BuildValue("i", kTransportAny));
+    PyObject_SetAttrString(mod, "kTransportUsb", Py_BuildValue("i", kTransportUsb));
+    PyObject_SetAttrString(mod, "kTransportLocal",Py_BuildValue("i", kTransportLocal));
+    PyObject_SetAttrString(mod, "kTransportHost", Py_BuildValue("i", kTransportHost));
+    return mod;
 }
 

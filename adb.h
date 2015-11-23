@@ -411,6 +411,8 @@ int sendfailmsg(int fd, const char *reason);
 int handle_host_request(char *service, transport_type ttype, char* serial, int reply_fd, asocket *s);
 
 
+void build_local_name(char* target_str, size_t target_size, int server_port);
+
 // error/status codes for install_listener.
 typedef enum {
     INSTALL_STATUS_OK = 0,
@@ -420,8 +422,12 @@ typedef enum {
 } install_status_t;
 
 install_status_t install_listener(const char *local_name,
-        const char *connect_to,
-        atransport* transport,
-        int no_rebind);
+                                  const char *connect_to,
+                                  atransport* transport,
+                                  int no_rebind);
+
+int format_listeners(char* buf, size_t buflen);
+int remove_listener(const char *local_name, atransport* transport);
+void remove_all_listeners(void);
 
 #endif

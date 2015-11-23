@@ -27,76 +27,16 @@
 #include <pthread.h>
 
 
-
-
-int install_app(transport_type transport, char* serial, int argc, char** argv);
-
-/*
- * 启动adb守护进程
- * 返回1表示成功，0表示失败
- */
-int start_server(unsigned short port) {
-    return launch_server(port) == 0;
-}
-
-/*
- * 关闭adb守护进程
- */
-int kill_server(unsigned short port) {
-    adb_set_tcp_specifics(port);
-    return _adb_connect("host:kill") != -1;
-}
-
-/* 安装apk，r表示重新安装 */
-int install_apk(const char *path, int r, unsigned short port) {
-    adb_set_tcp_specifics(port);
-    int argc = 2;
-    char *argv[3] = {
-        "install",
-        (char*)path,
-    };
-    if(r) {
-        argc = 3;
-        argv[1] = "-r";
-        argv[2] = (char*)path;
-    }
-    return install_app(kTransportUsb, NULL, argc, argv) == 0;
-}
-
-int forward_tcp(unsigned short local, unsigned short remote, int rebind, unsigned short port) {
-    adb_set_tcp_specifics(port);
-    char buf[128];
-    snprintf(buf, sizeof(buf), "host-usb:forward%s:tcp:%u;tcp:%u",rebind?"":":norebind", local,remote);
-    return adb_command(buf)==0;
-}
-
-int forward_remove_tcp(unsigned short local, unsigned short port) {
-    adb_set_tcp_specifics(port);
-    char buf[128];
-    snprintf(buf, sizeof(buf), "host-usb:killforward:tcp:%u",local);
-    return adb_command(buf)==0;
-}
-
-char *forward_list(unsigned short port) {
-    adb_set_tcp_specifics(port);
-    return adb_query("host-usb:list-forward");
-}
-
-
-/*********************************************
- * ADB
- ********************************************/
-
 static unsigned short adb_port = 5544;
 
-static void *fdevent_loop_thread(void *data){
+static void *fdevent_loop_thread(void *data) {
     fdevent_loop();
 }
 
-int adb_init(unsigned short port){
+int adb_init(unsigned short port) {
     atexit(usb_cleanup);
     signal(SIGPIPE, SIG_IGN);
-    
+
     adb_port = port;
 
     init_transport_registration();
@@ -111,7 +51,7 @@ int adb_init(unsigned short port){
         return 0;
     }
     pthread_t tid;
-    if(pthread_create(&tid, NULL, fdevent_loop_thread,NULL)){
+    if(pthread_create(&tid, NULL, fdevent_loop_thread,NULL)) {
         return 0;
     }
 
@@ -119,7 +59,44 @@ int adb_init(unsigned short port){
     return 1;
 }
 
-void adb_devices(char *buffer, unsigned int size, int use_long){
+void adb_devices(char *buffer, unsigned int size, int use_long) {
     memset(buffer, 0, size);
     list_transports(buffer, size, use_long);
+}
+
+void adb_list_forward(char *buffer, unsigned int size) {
+    memset(buffer, 0, size);
+    format_listeners(buffer, size);
+}
+
+const char *adb_create_forward(unsigned short local, unsigned short remote,
+                               transport_type ttype, const char* serial,
+                               int no_rebind) {
+    char *err;
+    atransport *transport = acquire_one_transport(CS_ANY, ttype, serial, &err);
+    if (!transport) {
+        return err;
+    }
+
+    char local_name[32];
+    char remote_name[32];
+    snprintf(local_name, sizeof(local_name), "tcp:%u", local);
+    snprintf(remote_name, sizeof(remote_name), "tcp:%u", remote);
+    int r = install_listener(local_name, remote_name, transport, no_rebind);
+    if(r == 0) {
+        return "OKAY";
+    }
+
+    const char* message;
+    switch (r) {
+    case INSTALL_STATUS_CANNOT_BIND:
+        message = "cannot bind to socket";
+        break;
+    case INSTALL_STATUS_CANNOT_REBIND:
+        message = "cannot rebind existing socket";
+        break;
+    default:
+        message = "internal error";
+    }
+    return message;
 }

@@ -798,7 +798,7 @@ static int format_listener(alistener* l, char* buffer, size_t buffer_len) {
 // user-provided buffer. Appends a trailing zero, even in case of
 // trunctaion, but return the full size in bytes.
 // If |buffer| is NULL, does not write but returns required size.
-static int format_listeners(char* buf, size_t buflen) {
+int format_listeners(char* buf, size_t buflen) {
     alistener* l;
     int result = 0;
     for (l = listener_list.next; l != &listener_list; l = l->next) {
@@ -818,7 +818,7 @@ static int format_listeners(char* buf, size_t buflen) {
     return result;
 }
 
-static int remove_listener(const char *local_name, atransport* transport) {
+int remove_listener(const char *local_name, atransport* transport) {
     alistener *l;
 
     for (l = listener_list.next; l != &listener_list; l = l->next) {
@@ -830,7 +830,7 @@ static int remove_listener(const char *local_name, atransport* transport) {
     return -1;
 }
 
-static void remove_all_listeners(void) {
+void remove_all_listeners(void) {
     alistener *l, *l_next;
     for (l = listener_list.next; l != &listener_list; l = l_next) {
         l_next = l->next;
@@ -843,9 +843,9 @@ static void remove_all_listeners(void) {
 
 
 install_status_t install_listener(const char *local_name,
-        const char *connect_to,
-        atransport* transport,
-        int no_rebind) {
+                                  const char *connect_to,
+                                  atransport* transport,
+                                  int no_rebind) {
     alistener *l;
 
     //printf("install_listener('%s','%s')\n", local_name, connect_to);

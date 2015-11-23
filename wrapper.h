@@ -28,29 +28,10 @@
 int adb_init(unsigned short port);
 void adb_devices(char *buffer, unsigned int size,int use_long);
 
-
-/*
- * 启动adb守护进程
- * 返回1表示成功，0表示失败
- */
-int start_server(unsigned short port);
-
-
-/*
- * 关闭adb守护进程
- */
-int kill_server(unsigned short port);
-
-/* 安装apk，r表示重新安装 */
-int install_apk(const char *path, int r, unsigned short port);
-
-/*
- *
- */
-int forward_tcp(unsigned short local, unsigned short remote, int rebind, unsigned short port);
-int forward_remove_tcp(unsigned short local, unsigned short port);
-
-char *forward_list(unsigned short port);
+void adb_list_forward(char *buffer, unsigned int size);
+const char *adb_create_forward(unsigned short local, unsigned short remote,
+                               transport_type ttype, const char* serial,
+                               int no_rebind);
 
 
 #endif

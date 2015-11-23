@@ -886,7 +886,7 @@ static void add_qual(char **buf, size_t *buf_size,
     size_t len;
     int prefix_len;
 
-    if (!buf || !*buf || !buf_size || !*buf_size || !qual || !*qual){
+    if (!buf || !*buf || !buf_size || !*buf_size || !qual || !*qual) {
         return;
     }
 
