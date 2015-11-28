@@ -100,3 +100,19 @@ const char *adb_create_forward(unsigned short local, unsigned short remote,
     }
     return message;
 }
+
+const char *adb_remove_forward(unsigned short local, transport_type ttype,
+                               const char* serial) {
+    char *err;
+    atransport *transport = acquire_one_transport(CS_ANY, ttype, serial, &err);
+    if(!transport) {
+        return err;
+    }
+    char local_name[32];
+    snprintf(local_name, sizeof(local_name), "tcp:%u", local);
+    int r = remove_listener(local_name, transport);
+    if(r) {
+        return "cannot remove listener";
+    }
+    return "OKAY";
+}

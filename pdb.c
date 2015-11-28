@@ -60,6 +60,18 @@ static PyObject *pdb_create_forward(PyObject *self, PyObject *args, PyObject *ke
     return Py_BuildValue("s", adb_create_forward(local, remote, ttype, serial, no_rebind));
 }
 
+static PyObject *pdb_remove_forward(PyObject *self, PyObject *args, PyObject *keywds) {
+    static char *kwlist[] = {"local", "ttype", "serial", NULL};
+    unsigned short local;
+    int ttype=kTransportAny;
+    char *serial=NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "H|is", kwlist,
+                                     &local, &ttype, &serial)) {
+        return NULL;
+    }
+    return Py_BuildValue("s", adb_remove_forward(local, ttype, serial));
+}
+
 
 static PyMethodDef PDBMethods[] = {
     {
@@ -72,10 +84,14 @@ static PyMethodDef PDBMethods[] = {
     },
     {
         "pdb_list_forward", (PyCFunction)pdb_list_forward, METH_NOARGS,
-        ""
+        "返回当前重定向列表"
     },
     {
         "pdb_create_forward", (PyCFunction)pdb_create_forward, METH_VARARGS |METH_KEYWORDS,
+        "创建一个TCP重定向"
+    },
+    {
+        "pdb_remove_forward", (PyCFunction)pdb_remove_forward, METH_VARARGS |METH_KEYWORDS,
         ""
     },
     {NULL, NULL, 0, NULL}
@@ -91,11 +107,11 @@ static struct PyModuleDef PDBModule = {
 };
 
 PyMODINIT_FUNC PyInit_pdb(void) {
-    PyObject *mod = PyModule_Create(&PDBModule);
-    PyObject_SetAttrString(mod, "kTransportAny", Py_BuildValue("i", kTransportAny));
-    PyObject_SetAttrString(mod, "kTransportUsb", Py_BuildValue("i", kTransportUsb));
-    PyObject_SetAttrString(mod, "kTransportLocal",Py_BuildValue("i", kTransportLocal));
-    PyObject_SetAttrString(mod, "kTransportHost", Py_BuildValue("i", kTransportHost));
-    return mod;
+    PyObject *m = PyModule_Create(&PDBModule);
+    PyObject_SetAttrString(m, "kTransportAny", Py_BuildValue("i", kTransportAny));
+    PyObject_SetAttrString(m, "kTransportUsb", Py_BuildValue("i", kTransportUsb));
+    PyObject_SetAttrString(m, "kTransportLocal",Py_BuildValue("i", kTransportLocal));
+    PyObject_SetAttrString(m, "kTransportHost", Py_BuildValue("i", kTransportHost));
+    return m;
 }
 
