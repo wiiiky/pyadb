@@ -72,7 +72,7 @@ static PyObject *pdb_remove_forward(PyObject *self, PyObject *args, PyObject *ke
     return Py_BuildValue("s", adb_remove_forward(local, ttype, serial));
 }
 
-static PyObject *pdb_remove_forward_all(PyObject *self){
+static PyObject *pdb_remove_forward_all(PyObject *self) {
     return Py_BuildValue("s", adb_remove_forward_all());
 }
 

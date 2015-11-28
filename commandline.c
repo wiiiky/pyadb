@@ -43,9 +43,7 @@ static int do_cmd(transport_type ttype, char* serial, char *cmd, ...);
 void get_my_path(char *s, size_t maxLen);
 int find_sync_dirs(const char *srcarg,
                    char **android_srcdir_out, char **data_srcdir_out, char **vendor_srcdir_out);
-int install_app(transport_type transport, char* serial, int argc, char** argv);
-int install_multiple_app(transport_type transport, char* serial, int argc, char** argv);
-int uninstall_app(transport_type transport, char* serial, int argc, char** argv);
+
 
 static const char *gProductOutPath = NULL;
 extern int gListenAll;

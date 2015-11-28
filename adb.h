@@ -430,4 +430,8 @@ int format_listeners(char* buf, size_t buflen);
 int remove_listener(const char *local_name, atransport* transport);
 void remove_all_listeners(void);
 
+int install_app(transport_type transport, char* serial, int argc, char** argv);
+int install_multiple_app(transport_type transport, char* serial, int argc, char** argv);
+int uninstall_app(transport_type transport, char* serial, int argc, char** argv);
+
 #endif
