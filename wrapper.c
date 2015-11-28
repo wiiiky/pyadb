@@ -116,3 +116,8 @@ const char *adb_remove_forward(unsigned short local, transport_type ttype,
     }
     return "OKAY";
 }
+
+const char *adb_remove_forward_all(void){
+    remove_all_listeners();
+    return "OKAY";
+}

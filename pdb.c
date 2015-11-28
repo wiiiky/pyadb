@@ -72,6 +72,10 @@ static PyObject *pdb_remove_forward(PyObject *self, PyObject *args, PyObject *ke
     return Py_BuildValue("s", adb_remove_forward(local, ttype, serial));
 }
 
+static PyObject *pdb_remove_forward_all(PyObject *self){
+    return Py_BuildValue("s", adb_remove_forward_all());
+}
+
 
 static PyMethodDef PDBMethods[] = {
     {
@@ -92,6 +96,10 @@ static PyMethodDef PDBMethods[] = {
     },
     {
         "pdb_remove_forward", (PyCFunction)pdb_remove_forward, METH_VARARGS |METH_KEYWORDS,
+        ""
+    },
+    {
+        "pdb_remove_forward_all", (PyCFunction)pdb_remove_forward_all, METH_NOARGS,
         ""
     },
     {NULL, NULL, 0, NULL}

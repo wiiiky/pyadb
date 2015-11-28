@@ -34,6 +34,7 @@ const char *adb_create_forward(unsigned short local, unsigned short remote,
                                int no_rebind);
 const char *adb_remove_forward(unsigned short local, transport_type ttype,
                                const char* serial);
+const char *adb_remove_forward_all(void);
 
 
 #endif
