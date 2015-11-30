@@ -31,8 +31,6 @@
 #include "adb.h"
 #include "adb_auth.h"
 
-#include "util.h"
-
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof((a)[0]))
 
 #if !ADB_HOST
@@ -1149,7 +1147,6 @@ int launch_server(int server_port) {
         return 0;
     } else if(pid==0) {
         /* 子进程执行adb_main函数 */
-        setproctitle("adbd");
         if(daemon(0, 1)) {
             _exit(1);
         }

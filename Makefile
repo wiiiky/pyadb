@@ -1,6 +1,5 @@
 SRCS+= pdb.c
 SRCS+= wrapper.c
-SRCS+= util.c
 
 SRCS+= adb.c
 SRCS+= adb_client.c
