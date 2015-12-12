@@ -38,6 +38,10 @@
 #include "adb_client.h"
 #include "file_sync_service.h"
 
+int install_app(transport_type transport, char* serial, int argc, char** argv);
+int install_multiple_app(transport_type transport, char* serial, int argc, char** argv);
+int uninstall_app(transport_type transport, char* serial, int argc, char** argv);
+
 static int do_cmd(transport_type ttype, char* serial, char *cmd, ...);
 
 void get_my_path(char *s, size_t maxLen);
@@ -255,7 +259,7 @@ static void stdin_raw_restore(int fd) {
 }
 #endif
 
-static void read_and_dump(int fd) {
+void read_and_dump(int fd) {
     char buf[4096];
     int len;
 
@@ -666,7 +670,7 @@ static int should_escape(const char c) {
 }
 
 /* Duplicate and escape given argument. */
-static char *escape_arg(const char *s) {
+char *escape_arg(const char *s) {
     const char *ts;
     size_t alloc_len;
     char *ret;
@@ -1799,8 +1803,8 @@ int find_sync_dirs(const char *srcarg,
     return 0;
 }
 
-static int pm_command(transport_type transport, char* serial,
-                      int argc, char** argv) {
+int pm_command(transport_type transport, char* serial,
+               int argc, char** argv) {
     char buf[4096];
 
     snprintf(buf, sizeof(buf), "shell:pm");
@@ -1832,7 +1836,7 @@ int uninstall_app(transport_type transport, char* serial, int argc, char** argv)
     return pm_command(transport, serial, argc, argv);
 }
 
-static int delete_file(transport_type transport, char* serial, char* filename) {
+int delete_file(transport_type transport, char* serial, char* filename) {
     char buf[4096];
     char* quoted;
 
@@ -1845,7 +1849,7 @@ static int delete_file(transport_type transport, char* serial, char* filename) {
     return 0;
 }
 
-static const char* get_basename(const char* filename) {
+const char* get_basename(const char* filename) {
     const char* basename = adb_dirstop(filename);
     if (basename) {
         basename++;

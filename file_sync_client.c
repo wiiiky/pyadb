@@ -322,8 +322,8 @@ static int write_data_link(int fd, const char *path, syncsendbuf *sbuf) {
 }
 #endif
 
-static int sync_send(int fd, const char *lpath, const char *rpath,
-                     unsigned mtime, mode_t mode, int show_progress) {
+int sync_send(int fd, const char *lpath, const char *rpath,
+              unsigned mtime, mode_t mode, int show_progress) {
     syncmsg msg;
     int len, r;
     syncsendbuf *sbuf = &send_buffer;
@@ -662,7 +662,7 @@ static int local_build_list(copyinfo **filelist,
 }
 
 
-static int copy_local_dir_remote(int fd, const char *lpath, const char *rpath, int checktimestamps, int listonly) {
+int copy_local_dir_remote(int fd, const char *lpath, const char *rpath, int checktimestamps, int listonly) {
     copyinfo *filelist = 0;
     copyinfo *ci, *next;
     int pushed = 0;

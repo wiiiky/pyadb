@@ -430,8 +430,18 @@ int format_listeners(char* buf, size_t buflen);
 int remove_listener(const char *local_name, atransport* transport);
 void remove_all_listeners(void);
 
-int install_app(transport_type transport, char* serial, int argc, char** argv);
-int install_multiple_app(transport_type transport, char* serial, int argc, char** argv);
-int uninstall_app(transport_type transport, char* serial, int argc, char** argv);
+const char* get_basename(const char* filename);
+int copy_local_dir_remote(int fd, const char *lpath, const char *rpath,
+                          int checktimestamps, int listonly);
+int delete_file(transport_type transport, char* serial, char* filename);
+int sync_send(int fd, const char *lpath, const char *rpath,
+              unsigned mtime, mode_t mode, int show_progress);
+int pm_command(transport_type transport, char* serial,
+               int argc, char** argv);
+int _adb_connect(const char *service);
+char *escape_arg(const char *s);
+void read_and_dump(int fd);
+void sync_quit(int fd);
+int sync_readmode(int fd, const char *path, unsigned *mode);
 
 #endif

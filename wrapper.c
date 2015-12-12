@@ -20,16 +20,19 @@
 #include "usb_vendors.h"
 // #include "adb_trace.h"
 #include <sys/wait.h>
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 #include <pthread.h>
+#include <errno.h>
 
 
-static unsigned short adb_port = 5544;
+static unsigned short adb_port = 5037;
 
 static void *fdevent_loop_thread(void *data) {
     fdevent_loop();
+    return NULL;
 }
 
 int adb_init(unsigned short port) {
@@ -118,5 +121,168 @@ const char *adb_remove_forward(unsigned short local, transport_type ttype,
 
 const char *adb_remove_forward_all(void) {
     remove_all_listeners();
+    return "OKAY";
+}
+
+
+static int _do_sync_push(const char *lpath, const char *rpath, int show_progress) {
+    struct stat st;
+    unsigned mode;
+    int fd;
+
+    if((fd = _adb_connect("sync:")) < 0) {
+        return 1;
+    }
+
+    if(stat(lpath, &st)) {
+        sync_quit(fd);
+        return 1;
+    }
+
+    if(S_ISDIR(st.st_mode)) {
+        if(copy_local_dir_remote(fd, lpath, rpath, 0, 0)) {
+            return 1;
+        } else {
+            sync_quit(fd);
+        }
+    } else {
+        if(sync_readmode(fd, rpath, &mode)) {
+            return 1;
+        }
+        if((mode != 0) && S_ISDIR(mode)) {
+            /* if we're copying a local file to a remote directory,
+            ** we *really* want to copy to remotedir + "/" + localfilename
+            */
+            const char *name = strrchr(lpath, '/');
+            if(name == 0) {
+                name = lpath;
+            } else {
+                name++;
+            }
+            int  tmplen = strlen(name) + strlen(rpath) + 2;
+            char *tmp = malloc(strlen(name) + strlen(rpath) + 2);
+            if(tmp == 0) return 1;
+            snprintf(tmp, tmplen, "%s/%s", rpath, name);
+            rpath = tmp;
+        }
+        if(sync_send(fd, lpath, rpath, st.st_mtime, st.st_mode, show_progress)) {
+            return 1;
+        } else {
+            sync_quit(fd);
+            return 0;
+        }
+    }
+
+    return 0;
+}
+
+static int _send_shellcommand(transport_type transport, char* serial, char* buf) {
+    int fd;
+
+    if((fd=_adb_connect(buf))<0) {
+        return -1;
+    }
+
+    read_and_dump(fd);
+
+    return close(fd);
+}
+
+static int _delete_file(transport_type transport, char* serial, char* filename) {
+    char buf[4096];
+    char* quoted;
+
+    snprintf(buf, sizeof(buf), "shell:rm -f ");
+    quoted = escape_arg(filename);
+    strncat(buf, quoted, sizeof(buf)-1);
+    free(quoted);
+
+    _send_shellcommand(transport, serial, buf);
+    return 0;
+}
+
+static int _pm_command(transport_type transport, char* serial,
+                       int argc, char** argv) {
+    char buf[4096];
+
+    snprintf(buf, sizeof(buf), "shell:pm");
+
+    while(argc-- > 0) {
+        char *quoted = escape_arg(*argv++);
+        if(quoted[0]!='\"') {
+            strncat(buf, " ", sizeof(buf) - 1);
+            strncat(buf, quoted, sizeof(buf) - 1);
+        }
+        free(quoted);
+    }
+
+    _send_shellcommand(transport, serial, buf);
+    return 0;
+}
+
+
+static int install_app(transport_type transport, char* serial, int argc, char** argv) {
+    static const char *const DATA_DEST = "/data/local/tmp/%s";
+    static const char *const SD_DEST = "/sdcard/tmp/%s";
+    const char* where = DATA_DEST;
+    int i;
+    struct stat sb;
+
+    for (i = 1; i < argc; i++) {
+        if (!strcmp(argv[i], "-s")) {
+            where = SD_DEST;
+        }
+    }
+
+    // Find last APK argument.
+    // All other arguments passed through verbatim.
+    int last_apk = -1;
+    for (i = argc - 1; i >= 0; i--) {
+        char* file = argv[i];
+        char* dot = strrchr(file, '.');
+        if (dot && !strcasecmp(dot, ".apk")) {
+            if (stat(file, &sb) == -1 || !S_ISREG(sb.st_mode)) {
+                return -1;
+            }
+
+            last_apk = i;
+            break;
+        }
+    }
+
+    if (last_apk == -1) {
+        return -1;
+    }
+
+    char* apk_file = argv[last_apk];
+    char apk_dest[PATH_MAX];
+    snprintf(apk_dest, sizeof apk_dest, where, get_basename(apk_file));
+    int err = _do_sync_push(apk_file, apk_dest, 0 /* no show progress */);
+    if (err) {
+        goto cleanup_apk;
+    } else {
+        argv[last_apk] = apk_dest; /* destination name, not source location */
+    }
+
+    _pm_command(transport, serial, argc, argv);
+
+cleanup_apk:
+    _delete_file(transport, serial, apk_dest);
+    return err;
+}
+
+const char *adb_install_app(transport_type ttype, char *serial,
+                            const char *apk, int r, int s) {
+    char argv1[5] = "-r";
+    char argv2[5] = "-s";
+    char *argv[]= {
+        "install",
+        r?argv1:"",
+        r?argv2:"",
+        (char*)apk,
+    };
+    if(install_app(ttype, serial, 4, argv)) {
+        return "FAIL";
+    }
     return "OKAY";
 }

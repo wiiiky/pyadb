@@ -36,6 +36,9 @@ const char *adb_remove_forward(unsigned short local, transport_type ttype,
                                const char* serial);
 const char *adb_remove_forward_all(void);
 
+const char *adb_install_app(transport_type ttype, char *serial,
+                            const char *apk, int r, int s);
+
 
 
 #endif

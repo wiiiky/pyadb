@@ -434,7 +434,7 @@ int  adb_shutdown(int  fd) {
 }
 
 
-int  adb_close(int  fd) {
+int adb_close(int  fd) {
     FH   f = _fh_from_int(fd);
 
     if (!f) {

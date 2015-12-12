@@ -19,7 +19,7 @@
 
 static PyObject *pdb_init(PyObject *self, PyObject *args, PyObject *keywds) {
     static char *kwlist[] = {"port", NULL};
-    int port=5544;
+    int port=5037;
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "|H", kwlist, &port)) {
         return NULL;
     }
@@ -76,6 +76,20 @@ static PyObject *pdb_remove_forward_all(PyObject *self) {
     return Py_BuildValue("s", adb_remove_forward_all());
 }
 
+static PyObject *pdb_install_apk(PyObject *self, PyObject *args, PyObject *keywds) {
+    static char *kwlist[] = {"file", "ttype", "serial", "reinstall","sdcard", NULL};
+    int ttype=kTransportAny;
+    char *serial=NULL;
+    char *file=NULL;
+    int reinstall = 0;
+    int sdcard = 0;
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "s|ispp", kwlist,
+                                     &file, &ttype, &serial,
+                                     &reinstall, &sdcard)) {
+        return NULL;
+    }
+    return Py_BuildValue("s", adb_install_app(ttype, serial, file, reinstall, sdcard));
+}
 
 static PyMethodDef PDBMethods[] = {
     {
@@ -100,6 +114,10 @@ static PyMethodDef PDBMethods[] = {
     },
     {
         "pdb_remove_forward_all", (PyCFunction)pdb_remove_forward_all, METH_NOARGS,
+        ""
+    },
+    {
+        "pdb_install_apk", (PyCFunction)pdb_install_apk, METH_VARARGS | METH_KEYWORDS,
         ""
     },
     {NULL, NULL, 0, NULL}
