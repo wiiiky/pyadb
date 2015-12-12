@@ -221,7 +221,7 @@ static int _pm_command(transport_type transport, char* serial,
 }
 
 
-static int install_app(transport_type transport, char* serial, int argc, char** argv) {
+static int _install_app(transport_type transport, char* serial, int argc, char** argv) {
     static const char *const DATA_DEST = "/data/local/tmp/%s";
     static const char *const SD_DEST = "/sdcard/tmp/%s";
     const char* where = DATA_DEST;
@@ -271,6 +271,22 @@ cleanup_apk:
     return err;
 }
 
+static int _uninstall_app(transport_type transport, char* serial, int argc, char** argv) {
+    /* if the user choose the -k option, we refuse to do it until devices are
+       out with the option to uninstall the remaining data somehow (adb/ui) */
+    if (argc == 3 && strcmp(argv[1], "-k") == 0) {
+        printf(
+            "The -k option uninstalls the application while retaining the data/cache.\n"
+            "At the moment, there is no way to remove the remaining data.\n"
+            "You will have to reinstall the application with the same signature, and fully uninstall it.\n"
+            "If you truly wish to continue, execute 'adb shell pm uninstall -k %s'\n", argv[2]);
+        return -1;
+    }
+
+    /* 'adb uninstall' takes the same arguments as 'pm uninstall' on device */
+    return _pm_command(transport, serial, argc, argv);
+}
+
 const char *adb_install_app(transport_type ttype, char *serial,
                             const char *apk, int r, int s) {
     char argv1[5] = "-r";
@@ -281,7 +297,19 @@ const char *adb_install_app(transport_type ttype, char *serial,
         r?argv2:"",
         (char*)apk,
     };
-    if(install_app(ttype, serial, 4, argv)) {
+    if(_install_app(ttype, serial, 4, argv)) {
+        return "FAIL";
+    }
+    return "OKAY";
+}
+
+const char *adb_uninstall_app(transport_type ttype, char *serial,
+                              const char *package) {
+    char *argv[]= {
+        "uninstall",
+        (char*)package,
+    };
+    if(pm_command(ttype, serial, 2, argv)) {
         return "FAIL";
     }
     return "OKAY";

@@ -38,6 +38,8 @@ const char *adb_remove_forward_all(void);
 
 const char *adb_install_app(transport_type ttype, char *serial,
                             const char *apk, int r, int s);
+const char *adb_uninstall_app(transport_type ttype, char *serial,
+                              const char *package);
 
 
 

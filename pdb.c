@@ -91,6 +91,18 @@ static PyObject *pdb_install_apk(PyObject *self, PyObject *args, PyObject *keywd
     return Py_BuildValue("s", adb_install_app(ttype, serial, file, reinstall, sdcard));
 }
 
+static PyObject *pdb_uninstall_apk(PyObject *self, PyObject *args, PyObject *keywds) {
+    static char *kwlist[] = {"package", "ttype", "serial", NULL};
+    int ttype=kTransportAny;
+    char *serial=NULL;
+    char *package=NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "s|is", kwlist,
+                                     &package, &ttype, &serial)) {
+        return NULL;
+    }
+    return Py_BuildValue("s", adb_uninstall_app(ttype, serial, package));
+}
+
 static PyMethodDef PDBMethods[] = {
     {
         "pdb_init", (PyCFunction)pdb_init, METH_VARARGS | METH_KEYWORDS,
@@ -118,6 +130,10 @@ static PyMethodDef PDBMethods[] = {
     },
     {
         "pdb_install_apk", (PyCFunction)pdb_install_apk, METH_VARARGS | METH_KEYWORDS,
+        ""
+    },
+    {
+        "pdb_uninstall_apk", (PyCFunction)pdb_uninstall_apk, METH_VARARGS | METH_KEYWORDS,
         ""
     },
     {NULL, NULL, 0, NULL}
