@@ -1,7 +1,13 @@
-pdb
+pyadb
 ================
 
 
 ###Introduce
-pdb对adb源代码进行简单修改并绑定到Python3上
+pyadb对adb源代码进行简单修改并绑定到Python3上
+
+
+###Usage
+执行pdb_init()初始化，会创建一个线程执行adb的事件任务。
+
+再调用相关的方法。
 
