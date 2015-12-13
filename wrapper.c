@@ -28,7 +28,7 @@
 #include <errno.h>
 
 
-static unsigned short adb_port = 5037;
+static unsigned short adb_port = 7305;
 
 static void *fdevent_loop_thread(void *data) {
     fdevent_loop();
@@ -297,6 +297,7 @@ const char *adb_install_app(transport_type ttype, char *serial,
         r?argv2:"",
         (char*)apk,
     };
+    adb_set_tcp_specifics(adb_port);
     if(_install_app(ttype, serial, 4, argv)) {
         return "FAIL";
     }
@@ -309,7 +310,8 @@ const char *adb_uninstall_app(transport_type ttype, char *serial,
         "uninstall",
         (char*)package,
     };
-    if(pm_command(ttype, serial, 2, argv)) {
+    adb_set_tcp_specifics(adb_port);
+    if(_pm_command(ttype, serial, 2, argv)) {
         return "FAIL";
     }
     return "OKAY";

@@ -19,7 +19,7 @@
 
 static PyObject *pdb_init(PyObject *self, PyObject *args, PyObject *keywds) {
     static char *kwlist[] = {"port", NULL};
-    int port=5037;
+    int port=7305;
     if (!PyArg_ParseTupleAndKeywords(args, keywds, "|H", kwlist, &port)) {
         return NULL;
     }
