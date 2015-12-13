@@ -148,7 +148,7 @@ static struct PyModuleDef PDBModule = {
     PDBMethods
 };
 
-PyMODINIT_FUNC PyInit_pdb(void) {
+PyMODINIT_FUNC PyInit_pyadb(void) {
     PyObject *m = PyModule_Create(&PDBModule);
     PyObject_SetAttrString(m, "kTransportAny", Py_BuildValue("i", kTransportAny));
     PyObject_SetAttrString(m, "kTransportUsb", Py_BuildValue("i", kTransportUsb));
