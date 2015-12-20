@@ -29,17 +29,19 @@ int adb_init(unsigned short port);
 void adb_devices(char *buffer, unsigned int size,int use_long);
 
 void adb_list_forward(char *buffer, unsigned int size);
-const char *adb_create_forward(unsigned short local, unsigned short remote,
-                               transport_type ttype, const char* serial,
-                               int no_rebind);
-const char *adb_remove_forward(unsigned short local, transport_type ttype,
-                               const char* serial);
-const char *adb_remove_forward_all(void);
+int adb_create_forward(unsigned short local, unsigned short remote,
+                       transport_type ttype, const char* serial,
+                       int no_rebind);
+int adb_remove_forward(unsigned short local, transport_type ttype,
+                       const char* serial);
+int adb_remove_forward_all(void);
 
-const char *adb_install_app(transport_type ttype, char *serial,
-                            const char *apk, int r, int s);
-const char *adb_uninstall_app(transport_type ttype, char *serial,
-                              const char *package);
+int adb_install_app(transport_type ttype, char *serial,
+                    const char *apk, int r, int s);
+int adb_uninstall_app(transport_type ttype, char *serial,
+                      const char *package);
+
+int adb_start_activity(transport_type ttype, char *serial, const char *activty);
 
 
 

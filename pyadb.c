@@ -57,7 +57,10 @@ static PyObject *pdb_create_forward(PyObject *self, PyObject *args, PyObject *ke
                                      &no_rebind)) {
         return NULL;
     }
-    return Py_BuildValue("s", adb_create_forward(local, remote, ttype, serial, no_rebind));
+    if(adb_create_forward(local, remote, ttype, serial, no_rebind)) {
+        Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
 }
 
 static PyObject *pdb_remove_forward(PyObject *self, PyObject *args, PyObject *keywds) {
@@ -69,11 +72,17 @@ static PyObject *pdb_remove_forward(PyObject *self, PyObject *args, PyObject *ke
                                      &local, &ttype, &serial)) {
         return NULL;
     }
-    return Py_BuildValue("s", adb_remove_forward(local, ttype, serial));
+    if(adb_remove_forward(local, ttype, serial)) {
+        Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
 }
 
 static PyObject *pdb_remove_forward_all(PyObject *self) {
-    return Py_BuildValue("s", adb_remove_forward_all());
+    if(adb_remove_forward_all()) {
+        Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
 }
 
 static PyObject *pdb_install_apk(PyObject *self, PyObject *args, PyObject *keywds) {
@@ -88,7 +97,10 @@ static PyObject *pdb_install_apk(PyObject *self, PyObject *args, PyObject *keywd
                                      &reinstall, &sdcard)) {
         return NULL;
     }
-    return Py_BuildValue("s", adb_install_app(ttype, serial, file, reinstall, sdcard));
+    if(adb_install_app(ttype, serial, file, reinstall, sdcard)) {
+        Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
 }
 
 static PyObject *pdb_uninstall_apk(PyObject *self, PyObject *args, PyObject *keywds) {
@@ -100,7 +112,25 @@ static PyObject *pdb_uninstall_apk(PyObject *self, PyObject *args, PyObject *key
                                      &package, &ttype, &serial)) {
         return NULL;
     }
-    return Py_BuildValue("s", adb_uninstall_app(ttype, serial, package));
+    if(adb_uninstall_app(ttype, serial, package)) {
+        Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
+}
+
+static PyObject *pdb_start_activity(PyObject *self, PyObject *args, PyObject *keywds) {
+    static char *kwlist[] = {"activity", "ttype", "serial", NULL};
+    int ttype=kTransportAny;
+    char *serial=NULL;
+    char *activity=NULL;
+    if (!PyArg_ParseTupleAndKeywords(args, keywds, "s|is", kwlist,
+                                     &activity, &ttype, &serial)) {
+        return NULL;
+    }
+    if(adb_start_activity(ttype, serial, activity)) {
+        Py_RETURN_TRUE;
+    }
+    Py_RETURN_FALSE;
 }
 
 static PyMethodDef PDBMethods[] = {
@@ -135,6 +165,10 @@ static PyMethodDef PDBMethods[] = {
     {
         "pdb_uninstall_apk", (PyCFunction)pdb_uninstall_apk, METH_VARARGS | METH_KEYWORDS,
         ""
+    },
+    {
+        "pdb_start_activity", (PyCFunction)pdb_start_activity, METH_VARARGS|METH_KEYWORDS,
+        "",
     },
     {NULL, NULL, 0, NULL}
 };

@@ -18,6 +18,7 @@
 #include "adb_client.h"
 #include "adb_auth.h"
 #include "usb_vendors.h"
+#include "sysdeps.h"
 // #include "adb_trace.h"
 #include <sys/wait.h>
 #include <sys/stat.h>
@@ -47,6 +48,7 @@ int adb_init(unsigned short port) {
     local_init(DEFAULT_ADB_LOCAL_TRANSPORT_PORT);
     adb_auth_init();
 
+    adb_set_tcp_specifics(adb_port);
     char local_name[30];
     build_local_name(local_name, sizeof(local_name), adb_port);
     if(install_listener(local_name, "*smartsocket*", NULL, 0)) {
@@ -71,13 +73,13 @@ void adb_list_forward(char *buffer, unsigned int size) {
     format_listeners(buffer, size);
 }
 
-const char *adb_create_forward(unsigned short local, unsigned short remote,
-                               transport_type ttype, const char* serial,
-                               int no_rebind) {
+int adb_create_forward(unsigned short local, unsigned short remote,
+                       transport_type ttype, const char* serial,
+                       int no_rebind) {
     char *err;
     atransport *transport = acquire_one_transport(CS_ANY, ttype, serial, &err);
     if (!transport) {
-        return err;
+        return 1;
     }
 
     char local_name[32];
@@ -85,43 +87,25 @@ const char *adb_create_forward(unsigned short local, unsigned short remote,
     snprintf(local_name, sizeof(local_name), "tcp:%u", local);
     snprintf(remote_name, sizeof(remote_name), "tcp:%u", remote);
     int r = install_listener(local_name, remote_name, transport, no_rebind);
-    if(r == 0) {
-        return "OKAY";
-    }
-
-    const char* message;
-    switch (r) {
-    case INSTALL_STATUS_CANNOT_BIND:
-        message = "cannot bind to socket";
-        break;
-    case INSTALL_STATUS_CANNOT_REBIND:
-        message = "cannot rebind existing socket";
-        break;
-    default:
-        message = "internal error";
-    }
-    return message;
+    return r==0;
 }
 
-const char *adb_remove_forward(unsigned short local, transport_type ttype,
-                               const char* serial) {
+int adb_remove_forward(unsigned short local, transport_type ttype,
+                       const char* serial) {
     char *err;
     atransport *transport = acquire_one_transport(CS_ANY, ttype, serial, &err);
     if(!transport) {
-        return err;
+        return 1;
     }
     char local_name[32];
     snprintf(local_name, sizeof(local_name), "tcp:%u", local);
     int r = remove_listener(local_name, transport);
-    if(r) {
-        return "cannot remove listener";
-    }
-    return "OKAY";
+    return r==0;
 }
 
-const char *adb_remove_forward_all(void) {
+int adb_remove_forward_all(void) {
     remove_all_listeners();
-    return "OKAY";
+    return 1;
 }
 
 
@@ -136,18 +120,18 @@ static int _do_sync_push(const char *lpath, const char *rpath, int show_progress
 
     if(stat(lpath, &st)) {
         sync_quit(fd);
-        return 1;
+        return 2;
     }
 
     if(S_ISDIR(st.st_mode)) {
         if(copy_local_dir_remote(fd, lpath, rpath, 0, 0)) {
-            return 1;
+            return 3;
         } else {
             sync_quit(fd);
         }
     } else {
         if(sync_readmode(fd, rpath, &mode)) {
-            return 1;
+            return 4;
         }
         if((mode != 0) && S_ISDIR(mode)) {
             /* if we're copying a local file to a remote directory,
@@ -166,7 +150,7 @@ static int _do_sync_push(const char *lpath, const char *rpath, int show_progress
             rpath = tmp;
         }
         if(sync_send(fd, lpath, rpath, st.st_mtime, st.st_mode, show_progress)) {
-            return 1;
+            return 5;
         } else {
             sync_quit(fd);
             return 0;
@@ -176,16 +160,29 @@ static int _do_sync_push(const char *lpath, const char *rpath, int show_progress
     return 0;
 }
 
-static int _send_shellcommand(transport_type transport, char* serial, char* buf) {
+static char *_send_shellcommand(transport_type transport, char* serial, char* cmd) {
     int fd;
 
-    if((fd=_adb_connect(buf))<0) {
-        return -1;
+    if((fd=_adb_connect(cmd))<0) {
+        return NULL;
     }
 
-    read_and_dump(fd);
-
-    return close(fd);
+    char buf[4096<<2];
+    char *ptr=buf;
+    int left=sizeof(buf);
+    int len = 0;
+    while(left>0) {
+        int n = adb_read(fd, ptr, left);
+        if(n>0) {
+            ptr += n;
+            left -= n;
+            len += n;
+        } else if(n<=0) {
+            break;
+        }
+    }
+    adb_close(fd);
+    return strndup(buf, len);
 }
 
 static int _delete_file(transport_type transport, char* serial, char* filename) {
@@ -197,12 +194,17 @@ static int _delete_file(transport_type transport, char* serial, char* filename) 
     strncat(buf, quoted, sizeof(buf)-1);
     free(quoted);
 
-    _send_shellcommand(transport, serial, buf);
-    return 0;
+    char *result = _send_shellcommand(transport, serial, buf);
+    int ret = -1;
+    if(result&&strstr(result, "OKAY")) {
+        ret = 0;
+    }
+    free(result);
+    return ret;
 }
 
-static int _pm_command(transport_type transport, char* serial,
-                       int argc, char** argv) {
+static char* _pm_command(transport_type transport, char* serial,
+                         int argc, char** argv) {
     char buf[4096];
 
     snprintf(buf, sizeof(buf), "shell:pm");
@@ -216,8 +218,25 @@ static int _pm_command(transport_type transport, char* serial,
         free(quoted);
     }
 
-    _send_shellcommand(transport, serial, buf);
-    return 0;
+    return _send_shellcommand(transport, serial, buf);
+}
+
+static char *_am_command(transport_type transport, char *serial,
+                         int argc, char **argv) {
+    char buf[4096];
+
+    snprintf(buf, sizeof(buf), "shell:am");
+
+    while(argc-- > 0) {
+        char *quoted = escape_arg(*argv++);
+        if(quoted[0]!='\"') {
+            strncat(buf, " ", sizeof(buf) - 1);
+            strncat(buf, quoted, sizeof(buf) - 1);
+        }
+        free(quoted);
+    }
+
+    return _send_shellcommand(transport, serial, buf);
 }
 
 
@@ -264,7 +283,11 @@ static int _install_app(transport_type transport, char* serial, int argc, char**
         argv[last_apk] = apk_dest; /* destination name, not source location */
     }
 
-    _pm_command(transport, serial, argc, argv);
+    char *result=_pm_command(transport, serial, argc, argv);
+    if(result==NULL||strstr(result, "Success")==NULL) {
+        err=5;
+    }
+    free(result);
 
 cleanup_apk:
     _delete_file(transport, serial, apk_dest);
@@ -284,11 +307,13 @@ static int _uninstall_app(transport_type transport, char* serial, int argc, char
     }
 
     /* 'adb uninstall' takes the same arguments as 'pm uninstall' on device */
-    return _pm_command(transport, serial, argc, argv);
+    char *result = _pm_command(transport, serial, argc, argv);
+    free(result);
+    return 0;
 }
 
-const char *adb_install_app(transport_type ttype, char *serial,
-                            const char *apk, int r, int s) {
+int adb_install_app(transport_type ttype, char *serial,
+                    const char *apk, int r, int s) {
     char argv1[5] = "-r";
     char argv2[5] = "-s";
     char *argv[]= {
@@ -297,22 +322,31 @@ const char *adb_install_app(transport_type ttype, char *serial,
         r?argv2:"",
         (char*)apk,
     };
-    adb_set_tcp_specifics(adb_port);
-    if(_install_app(ttype, serial, 4, argv)) {
-        return "FAIL";
-    }
-    return "OKAY";
+    return _install_app(ttype, serial, 4, argv) == 0;
 }
 
-const char *adb_uninstall_app(transport_type ttype, char *serial,
-                              const char *package) {
+int adb_uninstall_app(transport_type ttype, char *serial,
+                      const char *package) {
     char *argv[]= {
         "uninstall",
         (char*)package,
     };
-    adb_set_tcp_specifics(adb_port);
-    if(_pm_command(ttype, serial, 2, argv)) {
-        return "FAIL";
+    char *result= _pm_command(ttype, serial, 2, argv);
+    free(result);
+    return 1;
+}
+
+int adb_start_activity(transport_type ttype, char *serial, const char *activty) {
+    int argc=2;
+    char *argv[]= {
+        "start",
+        (char*)activty,
+    };
+    int ret=0;
+    char *result= _am_command(ttype, serial, argc, argv);
+    if(result&&strstr(result, "Error")==NULL) {
+        ret=1;
     }
-    return "OKAY";
+    free(result);
+    return ret;
 }
